@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/boki_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/boki_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
     username: ${SPRING_DATASOURCE_USERNAME:boki}
     password: ${SPRING_DATASOURCE_PASSWORD:boki}
     driver-class-name: com.mysql.cj.jdbc.Driver
