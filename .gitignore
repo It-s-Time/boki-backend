@@ -1,4 +1,9 @@
 HELP.md
+.DS_Store
+.env
+.env.*
+!.env.example
+!.env.*.example
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
