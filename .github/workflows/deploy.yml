@@ -50,12 +50,18 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 -d > ~/.ssh/boki_key
+          chmod 600 ~/.ssh/boki_key
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key_path: ~/.ssh/boki_key
           port: ${{ secrets.EC2_SSH_PORT || 22 }}
           script: |
             set -e
