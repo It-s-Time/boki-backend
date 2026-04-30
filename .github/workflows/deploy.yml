@@ -63,6 +63,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key_path: /home/runner/.ssh/boki_key
           port: ${{ secrets.EC2_SSH_PORT || 22 }}
+          command_timeout: 4m
           script: |
             set -e
             cd ${{ secrets.EC2_APP_DIR }}
@@ -71,8 +72,8 @@ jobs:
             docker compose -f docker-compose.prod.yml up -d
             docker compose -f docker-compose.prod.yml ps
 
-            for i in $(seq 1 30); do
-              if curl -fsS http://localhost:8080/api/health; then
+            for i in $(seq 1 12); do
+              if curl --connect-timeout 2 --max-time 5 -fsS http://localhost:8080/api/health; then
                 exit 0
               fi
               sleep 5
