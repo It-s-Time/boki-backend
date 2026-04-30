@@ -61,7 +61,7 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
-          key_path: ~/.ssh/boki_key
+          key_path: /home/runner/.ssh/boki_key
           port: ${{ secrets.EC2_SSH_PORT || 22 }}
           script: |
             set -e
