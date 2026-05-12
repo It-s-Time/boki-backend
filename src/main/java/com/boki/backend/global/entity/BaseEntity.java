@@ -1,4 +1,4 @@
-package com.boki.backend.domain.common;
+package com.boki.backend.global.entity;
 
 import java.time.LocalDateTime;
 
