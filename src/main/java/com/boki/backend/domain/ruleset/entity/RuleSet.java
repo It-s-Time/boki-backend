@@ -1,6 +1,6 @@
 package com.boki.backend.domain.ruleset.entity;
 
-import com.boki.backend.domain.common.BaseEntity;
+import com.boki.backend.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
