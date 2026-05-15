@@ -1,11 +1,8 @@
 package com.boki.backend.domain.trade.service;
 
 import com.boki.backend.domain.trade.dto.request.TradeManualCreateRequest;
-import com.boki.backend.domain.trade.dto.request.TradeSyncItemRequest;
-import com.boki.backend.domain.trade.dto.request.TradeSyncRequest;
 import com.boki.backend.domain.trade.dto.request.TradeUpdateRequest;
 import com.boki.backend.domain.trade.dto.response.TradeResponse;
-import com.boki.backend.domain.trade.dto.response.TradeSyncResponse;
 import com.boki.backend.domain.trade.entity.Trade;
 import com.boki.backend.domain.trade.entity.TradeInputType;
 import com.boki.backend.domain.trade.exception.TradeErrorCode;
@@ -60,18 +57,6 @@ public class TradeServiceImpl implements TradeService {
 
     @Override
     @Transactional
-    public TradeSyncResponse syncTrades(TradeSyncRequest request) {
-        Long memberId = authenticatedUserProvider.getCurrentUserId();
-        List<TradeResponse> trades = request.trades().stream()
-                .map(item -> createSyncedTrade(memberId, item))
-                .map(TradeResponse::from)
-                .toList();
-
-        return new TradeSyncResponse(request.trades().size(), trades.size(), trades);
-    }
-
-    @Override
-    @Transactional
     public TradeResponse updateTrade(Long tradeId, TradeUpdateRequest request) {
         Long memberId = authenticatedUserProvider.getCurrentUserId();
         Trade trade = getOwnedTrade(tradeId, memberId);
@@ -96,19 +81,6 @@ public class TradeServiceImpl implements TradeService {
     }
 
     //private method
-
-    private Trade createSyncedTrade(Long memberId, TradeSyncItemRequest item) {
-        return tradeRepository.save(Trade.builder()
-                .ruleSetId(item.ruleSetId())
-                .memberId(memberId)
-                .tradeType(item.tradeType())
-                .inputType(TradeInputType.API)
-                .coinType(normalizeRequiredText(item.coinType()))
-                .price(item.price())
-                .quantity(item.quantity())
-                .tradedAt(item.tradedAt())
-                .build());
-    }
 
     private Trade getOwnedTrade(Long tradeId, Long memberId) {
         Trade trade = tradeRepository.findById(tradeId)

@@ -1,10 +1,8 @@
 package com.boki.backend.domain.trade.controller;
 
 import com.boki.backend.domain.trade.dto.request.TradeManualCreateRequest;
-import com.boki.backend.domain.trade.dto.request.TradeSyncRequest;
 import com.boki.backend.domain.trade.dto.request.TradeUpdateRequest;
 import com.boki.backend.domain.trade.dto.response.TradeResponse;
-import com.boki.backend.domain.trade.dto.response.TradeSyncResponse;
 import com.boki.backend.domain.trade.service.TradeService;
 import com.boki.backend.global.apiPayload.ApiResponse;
 import com.boki.backend.global.apiPayload.code.GeneralSuccessCode;
@@ -50,16 +48,6 @@ public class TradeController {
         return ResponseEntity
                 .status(GeneralSuccessCode.CREATED.getStatus())
                 .body(ApiResponse.onSuccess(GeneralSuccessCode.CREATED, tradeService.createManualTrade(request)));
-    }
-
-    @Operation(summary = "API 연동 거래 동기화", description = "외부 거래 식별자 기준으로 API 연동 거래를 저장 또는 갱신합니다.")
-    @PostMapping("/sync")
-    public ResponseEntity<ApiResponse<TradeSyncResponse>> syncTrades(
-            @Valid @RequestBody TradeSyncRequest request
-    ) {
-        return ResponseEntity
-                .status(GeneralSuccessCode.OK.getStatus())
-                .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, tradeService.syncTrades(request)));
     }
 
     @Operation(summary = "거래 상세 조회", description = "인증 사용자 소유 거래 상세 정보를 조회합니다.")

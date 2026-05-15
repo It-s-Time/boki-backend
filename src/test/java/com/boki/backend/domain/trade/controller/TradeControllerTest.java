@@ -96,53 +96,6 @@ class TradeControllerTest {
     }
 
     @Test
-    void syncTradesCreatesNewApiTrades() throws Exception {
-        String syncRequest = """
-                {
-                  "trades": [
-                    {
-                      "ruleSetId": null,
-                      "coinType": "eth",
-                      "tradeType": "BUY",
-                      "price": 4500000,
-                      "quantity": 0.04715290,
-                      "tradedAt": "2026-05-08T11:00:00"
-                    },
-                    {
-                      "ruleSetId": 10,
-                      "coinType": "btc",
-                      "tradeType": "SELL",
-                      "price": 90000000,
-                      "quantity": 0.1,
-                      "tradedAt": "2026-05-08T12:00:00"
-                    }
-                  ]
-                }
-                """;
-
-        mockMvc.perform(post("/api/trades/sync")
-                        .header("X-User-Id", "7")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(syncRequest))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.requestedCount", is(2)))
-                .andExpect(jsonPath("$.result.savedCount", is(2)))
-                .andExpect(jsonPath("$.result.trades[0].memberId", is(7)))
-                .andExpect(jsonPath("$.result.trades[0].ruleSetId", nullValue()))
-                .andExpect(jsonPath("$.result.trades[0].inputType", is("API")))
-                .andExpect(jsonPath("$.result.trades[0].coinType", is("ETH")))
-                .andExpect(jsonPath("$.result.trades[0].quantity").value(closeTo(0.04715290, 0.000000001), Double.class))
-                .andExpect(jsonPath("$.result.trades[1].ruleSetId", is(10)))
-                .andExpect(jsonPath("$.result.trades[1].inputType", is("API")))
-                .andExpect(jsonPath("$.result.trades[1].coinType", is("BTC")));
-
-        mockMvc.perform(get("/api/trades")
-                        .header("X-User-Id", "7"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result", hasSize(2)));
-    }
-
-    @Test
     void validationErrorReturnsApiResponse() throws Exception {
         mockMvc.perform(post("/api/trades/manual")
                         .contentType(MediaType.APPLICATION_JSON)
