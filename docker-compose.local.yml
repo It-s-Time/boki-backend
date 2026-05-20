@@ -10,7 +10,7 @@ services:
       MYSQL_ROOT_PASSWORD: root
       TZ: Asia/Seoul
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
       - boki-mysql-data:/var/lib/mysql
     healthcheck:

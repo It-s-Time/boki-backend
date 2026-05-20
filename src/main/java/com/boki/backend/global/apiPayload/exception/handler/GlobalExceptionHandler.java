@@ -4,9 +4,14 @@ import com.boki.backend.global.apiPayload.ApiResponse;
 import com.boki.backend.global.apiPayload.code.GeneralErrorCode;
 import com.boki.backend.global.apiPayload.exception.GeneralException;
 import jakarta.validation.ConstraintViolationException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -26,6 +31,26 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(GeneralErrorCode.VALIDATION_ERROR.getStatus())
                 .body(ApiResponse.onFailure(GeneralErrorCode.VALIDATION_ERROR, exception.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleMethodArgumentNotValidException(
+            MethodArgumentNotValidException exception
+    ) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        exception.getBindingResult().getFieldErrors()
+                .forEach(error -> errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
+
+        return ResponseEntity
+                .status(GeneralErrorCode.VALIDATION_ERROR.getStatus())
+                .body(ApiResponse.onFailure(GeneralErrorCode.VALIDATION_ERROR, errors));
+    }
+
+    @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
+    public ResponseEntity<ApiResponse<Void>> handleNotFoundException(Exception exception) {
+        return ResponseEntity
+                .status(GeneralErrorCode.NOT_FOUND.getStatus())
+                .body(ApiResponse.onFailure(GeneralErrorCode.NOT_FOUND, null));
     }
 
     @ExceptionHandler(Exception.class)
