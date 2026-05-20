@@ -46,14 +46,14 @@ public class ExchangeTradeSyncServiceImpl implements ExchangeTradeSyncService {
                 upbitClient.getClosedOrders(credential.getAccessKey(), secretKey);
 
         int skippedCount = 0;
-        List<TradeResponse> syncedTrades = new ArrayList<>();
+        List<Trade> tradesToSave = new ArrayList<>();
         for (UpbitClosedOrderResponse order : closedOrders) {
             if (tradeRepository.existsByMemberIdAndExternalTradeId(memberId, order.uuid())) {
                 skippedCount++;
                 continue;
             }
 
-            Trade trade = tradeRepository.save(Trade.builder()
+            tradesToSave.add(Trade.builder()
                     .ruleSetId(null)
                     .memberId(memberId)
                     .tradeType(toTradeType(order.side()))
@@ -64,8 +64,11 @@ public class ExchangeTradeSyncServiceImpl implements ExchangeTradeSyncService {
                     .tradedAt(resolveTradedAt(order))
                     .externalTradeId(order.uuid())
                     .build());
-            syncedTrades.add(TradeResponse.from(trade));
         }
+
+        List<TradeResponse> syncedTrades = tradeRepository.saveAll(tradesToSave).stream()
+                .map(TradeResponse::from)
+                .toList();
 
         return new ExchangeTradeSyncResponse(syncedTrades.size(), skippedCount, syncedTrades);
     }
