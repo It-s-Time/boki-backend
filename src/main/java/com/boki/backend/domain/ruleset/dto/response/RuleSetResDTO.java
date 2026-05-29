@@ -5,7 +5,7 @@ import com.boki.backend.domain.ruleset.entity.RuleSetType;
 import com.boki.backend.domain.ruleset.entity.RuleType;
 import lombok.*;
 
-
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -15,6 +15,7 @@ public class RuleSetResDTO {
     private Long ruleSetId;
     private String name;
     private RuleSetType type;
+    private LocalDateTime createdAt;
     private List<RuleResDTO> buyRules;
     private List<RuleResDTO> sellRules;
 
@@ -23,6 +24,7 @@ public class RuleSetResDTO {
                 .ruleSetId(ruleSet.getId())
                 .name(ruleSet.getName())
                 .type(ruleSet.getType())
+                .createdAt(ruleSet.getCreatedAt())
                 .buyRules(ruleSet.getRules().stream()
                         .filter(r -> r.getType() == RuleType.BUY && r.isActive())
                         .map(RuleResDTO::from)
