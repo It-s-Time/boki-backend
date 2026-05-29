@@ -14,6 +14,7 @@ public class RuleSetResDTO {
 
     private Long ruleSetId;
     private String name;
+    private String description;
     private RuleSetType type;
     private LocalDateTime createdAt;
     private List<RuleResDTO> buyRules;
@@ -23,6 +24,7 @@ public class RuleSetResDTO {
         return RuleSetResDTO.builder()
                 .ruleSetId(ruleSet.getId())
                 .name(ruleSet.getName())
+                .description(ruleSet.getDescription())
                 .type(ruleSet.getType())
                 .createdAt(ruleSet.getCreatedAt())
                 .buyRules(ruleSet.getRules().stream()
