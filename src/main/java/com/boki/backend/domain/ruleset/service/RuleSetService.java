@@ -5,8 +5,8 @@ import com.boki.backend.domain.ruleset.dto.response.RuleSetResDTO;
 import com.boki.backend.domain.ruleset.entity.*;
 import com.boki.backend.domain.ruleset.repository.RuleRepository;
 import com.boki.backend.domain.ruleset.repository.RuleSetRepository;
-import com.boki.backend.global.exception.CustomException;
-import com.boki.backend.global.exception.ErrorCode;
+import com.boki.backend.domain.ruleset.exception.RuleSetErrorCode;
+import com.boki.backend.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.lang.NonNull;
@@ -78,7 +78,7 @@ public class RuleSetService {
     public RuleSetResDTO updateRule(Long userId, Long ruleSetId, Long ruleId, RuleUpdateReqDTO request) {
         findRuleSetByUser(userId, ruleSetId);
         Rule rule = ruleRepository.findByIdAndRuleSetIdAndIsActiveTrue(ruleId, ruleSetId)
-                .orElseThrow(() -> new CustomException(ErrorCode.RULE_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_NOT_FOUND));
         rule.update(request.getContent());
         return RuleSetResDTO.from(ruleSetRepository.findById(ruleSetId).get());
     }
@@ -87,17 +87,17 @@ public class RuleSetService {
     public void deleteRule(Long userId, Long ruleSetId, Long ruleId) {
         findRuleSetByUser(userId, ruleSetId);
         Rule rule = ruleRepository.findByIdAndRuleSetIdAndIsActiveTrue(ruleId, ruleSetId)
-                .orElseThrow(() -> new CustomException(ErrorCode.RULE_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_NOT_FOUND));
         rule.deactivate();
     }
 
     // 템플릿은 소유자 체크 없이 조회 가능
     private RuleSet findRuleSetForRead(Long userId, Long ruleSetId) {
         RuleSet ruleSet = ruleSetRepository.findById(ruleSetId)
-                .orElseThrow(() -> new CustomException(ErrorCode.RULE_SET_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_SET_NOT_FOUND));
 
         if (ruleSet.getType() == RuleSetType.CUSTOM && !ruleSet.getMemberId().equals(userId)) {
-            throw new CustomException(ErrorCode.FORBIDDEN);
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_FORBIDDEN);
         }
 
         return ruleSet;
@@ -106,12 +106,12 @@ public class RuleSetService {
     // 수정/삭제는 내 CUSTOM 세트만 가능
     private RuleSet findRuleSetByUser(Long userId, Long ruleSetId) {
         return ruleSetRepository.findByIdAndMemberId(ruleSetId, userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.RULE_SET_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_SET_NOT_FOUND));
     }
 
     private RuleSetResDTO addRule(Long userId, Long ruleSetId, RuleCreateReqDTO request, RuleType ruleType) {
         RuleSet originalRuleSet = ruleSetRepository.findById(ruleSetId)
-                .orElseThrow(() -> new CustomException(ErrorCode.RULE_SET_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_SET_NOT_FOUND));
 
         RuleSet targetRuleSet;
 
