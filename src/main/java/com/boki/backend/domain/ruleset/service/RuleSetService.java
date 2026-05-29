@@ -65,6 +65,33 @@ public class RuleSetService {
     }
 
     @Transactional
+    public RuleSetResDTO copyFromTemplate(Long userId, Long templateId, RuleSetCopyReqDTO request) {
+        RuleSet template = ruleSetRepository.findById(templateId)
+                .filter(rs -> rs.getType() == RuleSetType.TEMPLATE)
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_SET_NOT_FOUND));
+
+        RuleSet customCopy = RuleSet.builder()
+                .memberId(userId)
+                .name(request.getName())
+                .type(RuleSetType.CUSTOM)
+                .templateId(template.getId())
+                .build();
+
+        RuleSet savedCopy = ruleSetRepository.save(customCopy);
+
+        template.getRules().stream()
+                .filter(Rule::isActive)
+                .forEach(templateRule -> savedCopy.addRule(Rule.builder()
+                        .ruleSet(savedCopy)
+                        .type(templateRule.getType())
+                        .content(templateRule.getContent())
+                        .orderIndex(templateRule.getOrderIndex())
+                        .build()));
+
+        return RuleSetResDTO.from(savedCopy);
+    }
+
+    @Transactional
     public RuleSetResDTO addBuyRule(Long userId, Long ruleSetId, RuleCreateReqDTO request) {
         return addRule(userId, ruleSetId, request, RuleType.BUY);
     }

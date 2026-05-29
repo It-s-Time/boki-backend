@@ -36,6 +36,14 @@ public class RuleSetController {
         return ResponseEntity.ok(ApiResponse.ok(ruleSetService.getRuleSet(userProvider.getCurrentUserId(), ruleSetId)));
     }
 
+    @Operation(summary = "템플릿으로 세트 생성", description = "추천 템플릿을 복사해 내 커스텀 세트 생성 (온보딩 시작하기)")
+    @PostMapping("/from-template/{templateId}")
+    public ResponseEntity<ApiResponse<RuleSetResDTO>> copyFromTemplate(
+            @PathVariable Long templateId,
+            @RequestBody @Valid RuleSetCopyReqDTO request) {
+        return ResponseEntity.ok(ApiResponse.ok(ruleSetService.copyFromTemplate(userProvider.getCurrentUserId(), templateId, request)));
+    }
+
     @Operation(summary = "세트 생성", description = "새 커스텀 룰셋 생성")
     @PostMapping
     public ResponseEntity<ApiResponse<RuleSetResDTO>> createRuleSet(
