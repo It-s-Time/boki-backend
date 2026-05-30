@@ -69,7 +69,7 @@ jobs:
             cd ${{ secrets.EC2_APP_DIR }}
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
             docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
             docker compose -f docker-compose.prod.yml ps
 
             for i in $(seq 1 12); do
@@ -80,5 +80,5 @@ jobs:
             done
 
             docker compose -f docker-compose.prod.yml logs --tail=200 app
-            docker compose -f docker-compose.prod.yml logs --tail=100 mysql
+            docker compose -f docker-compose.prod.yml logs --tail=100 redis
             exit 1

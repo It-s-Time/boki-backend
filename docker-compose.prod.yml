@@ -1,22 +1,4 @@
 services:
-  mysql:
-    image: mysql:8.4
-    container_name: boki-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${DB_NAME:?DB_NAME is required}
-      MYSQL_USER: ${DB_USERNAME:?DB_USERNAME is required}
-      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
-      TZ: Asia/Seoul
-    volumes:
-      - boki-mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER} -p$${MYSQL_PASSWORD} --silent"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
   redis:
     image: redis:7.4-alpine
     container_name: boki-redis
@@ -28,34 +10,29 @@ services:
       retries: 10
 
   app:
-    image: ${GHCR_IMAGE:-ghcr.io/your-github-owner/boki-backend}:${IMAGE_TAG:-latest}
+    image: ${GHCR_IMAGE:-ghcr.io/it-s-time/boki-backend}:${IMAGE_TAG:-latest}
     container_name: boki-backend
     restart: unless-stopped
     depends_on:
-      mysql:
-        condition: service_healthy
       redis:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SERVER_PORT: 8080
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${DB_NAME:?DB_NAME is required}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      SPRING_DATASOURCE_URL: jdbc:mysql://${DB_HOST:?DB_HOST is required}:${DB_PORT:-3306}/${DB_NAME:?DB_NAME is required}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
       SPRING_REDIS_HOST: ${SPRING_REDIS_HOST:-redis}
       SPRING_REDIS_PORT: ${SPRING_REDIS_PORT:-6379}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-dummy}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:?GOOGLE_REDIRECT_URI is required}
-      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:?KAKAO_CLIENT_ID is required}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/auth/oauth2/google/callback}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-dummy}
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
-      KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI:?KAKAO_REDIRECT_URI is required}
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI:-http://localhost:8080/auth/oauth2/kakao/callback}
+      JWT_SECRET: ${JWT_SECRET:-temporary-development-jwt-secret-please-change}
       JWT_ACCESS_TOKEN_EXPIRATION_MS: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:-3600000}
       JWT_REFRESH_TOKEN_EXPIRATION_MS: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:-1209600000}
     ports:
       - "8080:8080"
-
-volumes:
-  boki-mysql-data:
