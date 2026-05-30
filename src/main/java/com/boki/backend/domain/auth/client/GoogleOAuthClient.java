@@ -40,6 +40,7 @@ public class GoogleOAuthClient implements OAuthClient {
                 .queryParam("client_id", google.clientId())
                 .queryParam("redirect_uri", google.redirectUri())
                 .queryParam("scope", SCOPE)
+                .encode()
                 .build()
                 .toUriString();
     }

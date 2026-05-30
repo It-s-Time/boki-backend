@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.boki.backend.domain.auth.jwt.JwtTokenProvider;
 import com.boki.backend.domain.trade.repository.TradeRepository;
 import com.boki.backend.domain.exchange.client.UpbitClient;
 import com.boki.backend.domain.exchange.client.UpbitClosedOrderResponse;
@@ -50,6 +51,9 @@ class ExchangeControllerTest {
     @Autowired
     private SecretKeyEncryptor secretKeyEncryptor;
 
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
     @MockitoBean
     private UpbitClient upbitClient;
 
@@ -62,6 +66,7 @@ class ExchangeControllerTest {
     @Test
     void saveCredentialCreatesEncryptedCredential() throws Exception {
         mockMvc.perform(post("/api/exchange/api-key")
+                        .header("Authorization", bearer(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -90,6 +95,7 @@ class ExchangeControllerTest {
                 .build());
 
         mockMvc.perform(post("/api/exchange/api-key")
+                        .header("Authorization", bearer(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -116,6 +122,7 @@ class ExchangeControllerTest {
                 .validateCredentials(anyString(), anyString());
 
         mockMvc.perform(post("/api/exchange/api-key")
+                        .header("Authorization", bearer(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -129,9 +136,24 @@ class ExchangeControllerTest {
 
     @Test
     void syncUpbitTradesFailsWithoutCredential() throws Exception {
-        mockMvc.perform(post("/api/exchange/sync/trades"))
+        mockMvc.perform(post("/api/exchange/sync/trades")
+                        .header("Authorization", bearer(1L)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code", is("EXCHANGE404")));
+    }
+
+    @Test
+    void saveCredentialRequiresAccessToken() throws Exception {
+        mockMvc.perform(post("/api/exchange/api-key")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "accessKey": "access-key",
+                                  "secretKey": "secret-key"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code", is("COMMON401")));
     }
 
     @Test
@@ -154,7 +176,8 @@ class ExchangeControllerTest {
                         OffsetDateTime.parse("2026-03-23T14:35:10+09:00")
                 )));
 
-        mockMvc.perform(post("/api/exchange/sync/trades"))
+        mockMvc.perform(post("/api/exchange/sync/trades")
+                        .header("Authorization", bearer(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.syncedCount", is(1)))
                 .andExpect(jsonPath("$.result.skippedCount", is(0)))
@@ -165,11 +188,16 @@ class ExchangeControllerTest {
                 .andExpect(jsonPath("$.result.trades[0].externalTradeId", is("upbit-order-uuid")))
                 .andExpect(jsonPath("$.result.trades[0].quantity").value(closeTo(0.04715290, 0.000000001), Double.class));
 
-        mockMvc.perform(post("/api/exchange/sync/trades"))
+        mockMvc.perform(post("/api/exchange/sync/trades")
+                        .header("Authorization", bearer(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.syncedCount", is(0)))
                 .andExpect(jsonPath("$.result.skippedCount", is(1)));
 
         org.hamcrest.MatcherAssert.assertThat(tradeRepository.findAll(), hasSize(1));
+    }
+
+    private String bearer(Long memberId) {
+        return "Bearer " + jwtTokenProvider.createAccessToken(memberId);
     }
 }

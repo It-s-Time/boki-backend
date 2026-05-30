@@ -7,13 +7,13 @@ import java.util.List;
 
 public interface TradeService {
 
-    List<TradeResponse> getTrades();
+    List<TradeResponse> getTrades(Long memberId);
 
-    TradeResponse getTrade(Long tradeId);
+    TradeResponse getTrade(Long memberId, Long tradeId);
 
-    TradeResponse createManualTrade(TradeManualCreateRequest request);
+    TradeResponse createManualTrade(Long memberId, TradeManualCreateRequest request);
 
-    TradeResponse updateTrade(Long tradeId, TradeUpdateRequest request);
+    TradeResponse updateTrade(Long memberId, Long tradeId, TradeUpdateRequest request);
 
-    void deleteTrade(Long tradeId);
+    void deleteTrade(Long memberId, Long tradeId);
 }

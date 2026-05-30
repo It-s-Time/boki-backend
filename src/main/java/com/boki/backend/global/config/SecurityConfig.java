@@ -2,10 +2,13 @@ package com.boki.backend.global.config;
 
 import com.boki.backend.domain.auth.jwt.JwtAuthenticationFilter;
 import com.boki.backend.domain.auth.jwt.JwtTokenProvider;
+import com.boki.backend.global.apiPayload.ApiResponse;
+import com.boki.backend.global.apiPayload.code.GeneralErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -27,17 +30,25 @@ public class SecurityConfig {
     ) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable);
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        http.exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, authException) -> {
+            response.setStatus(GeneralErrorCode.UNAUTHORIZED.getStatus().value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write(objectMapper.writeValueAsString(
+                    ApiResponse.onFailure(GeneralErrorCode.UNAUTHORIZED, null)
+            ));
+        }));
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/auth/**",
+                        "/api/test/**",
                         "/swagger-ui.html",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/actuator/health",
                         "/actuator/info"
                 ).permitAll()
-                // 개발 단계에서는 기존 X-User-Id/userId=1 fallback 흐름을 유지합니다.
-                .anyRequest().permitAll());
+                .anyRequest().authenticated());
         jwtTokenProviderProvider.ifAvailable(jwtTokenProvider ->
                 http.addFilterBefore(
                         new JwtAuthenticationFilter(jwtTokenProvider, objectMapper),

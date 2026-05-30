@@ -3,14 +3,15 @@ package com.boki.backend.domain.auth.controller;
 import com.boki.backend.domain.auth.dto.request.LogoutRequest;
 import com.boki.backend.domain.auth.dto.request.TokenReissueRequest;
 import com.boki.backend.domain.auth.dto.response.AuthTokenResponse;
+import com.boki.backend.domain.auth.exception.AuthErrorCode;
 import com.boki.backend.domain.auth.service.SocialLoginService;
 import com.boki.backend.domain.member.entity.SocialProvider;
 import com.boki.backend.global.apiPayload.ApiResponse;
 import com.boki.backend.global.apiPayload.code.GeneralSuccessCode;
+import com.boki.backend.global.apiPayload.exception.GeneralException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -46,8 +47,12 @@ public class AuthController {
     @GetMapping("/oauth2/{provider}/callback")
     public ResponseEntity<ApiResponse<AuthTokenResponse>> oauthCallback(
             @PathVariable String provider,
-            @RequestParam @NotBlank(message = "code는 필수입니다.") String code
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false) String error
     ) {
+        if (isBlank(code) || !isBlank(error)) {
+            throw new GeneralException(AuthErrorCode.INVALID_OAUTH_CODE);
+        }
         AuthTokenResponse response = socialLoginService.login(SocialProvider.from(provider), code);
         return ResponseEntity
                 .status(GeneralSuccessCode.OK.getStatus())
@@ -74,5 +79,9 @@ public class AuthController {
         return ResponseEntity
                 .status(GeneralSuccessCode.OK.getStatus())
                 .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, null));
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }
