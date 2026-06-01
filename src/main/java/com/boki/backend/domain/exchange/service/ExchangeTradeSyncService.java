@@ -4,5 +4,5 @@ import com.boki.backend.domain.exchange.dto.response.ExchangeTradeSyncResponse;
 
 public interface ExchangeTradeSyncService {
 
-    ExchangeTradeSyncResponse syncCurrentUserTrades();
+    ExchangeTradeSyncResponse syncCurrentUserTrades(Long memberId);
 }

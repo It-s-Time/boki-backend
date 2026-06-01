@@ -13,7 +13,6 @@ import com.boki.backend.domain.exchange.exception.ExchangeErrorCode;
 import com.boki.backend.domain.exchange.repository.ApiKeyRepository;
 import com.boki.backend.domain.exchange.util.SecretKeyEncryptor;
 import com.boki.backend.global.apiPayload.exception.GeneralException;
-import com.boki.backend.global.auth.AuthenticatedUserProvider;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -32,12 +31,10 @@ public class ExchangeTradeSyncServiceImpl implements ExchangeTradeSyncService {
     private final TradeRepository tradeRepository;
     private final UpbitClient upbitClient;
     private final SecretKeyEncryptor secretKeyEncryptor;
-    private final AuthenticatedUserProvider authenticatedUserProvider;
 
     @Override
     @Transactional
-    public ExchangeTradeSyncResponse syncCurrentUserTrades() {
-        Long memberId = authenticatedUserProvider.getCurrentUserId();
+    public ExchangeTradeSyncResponse syncCurrentUserTrades(Long memberId) {
         ApiKey credential = apiKeyRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new GeneralException(ExchangeErrorCode.CREDENTIAL_NOT_FOUND));
 

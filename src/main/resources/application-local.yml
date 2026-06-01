@@ -17,6 +17,10 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
     open-in-view: false
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
 
 server:
   # address: 127.0.0.1  # Windows 환경에서 Bad address: listen 오류 발생으로 주석 처리

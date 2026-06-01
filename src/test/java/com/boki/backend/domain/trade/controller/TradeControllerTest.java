@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.boki.backend.domain.auth.jwt.JwtTokenProvider;
 import com.boki.backend.domain.trade.repository.TradeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class TradeControllerTest {
     @Autowired
     private TradeRepository tradeRepository;
 
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
     @BeforeEach
     void setUp() {
         tradeRepository.deleteAll();
@@ -42,7 +46,8 @@ class TradeControllerTest {
     void createManualTradeAndReadUpdateDeleteWithFallbackUser() throws Exception {
         Long tradeId = createManualTrade();
 
-        mockMvc.perform(get("/api/trades"))
+        mockMvc.perform(get("/api/trades")
+                        .header("Authorization", bearer(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess", is(true)))
                 .andExpect(jsonPath("$.result", hasSize(1)))
@@ -52,13 +57,15 @@ class TradeControllerTest {
                 .andExpect(jsonPath("$.result[0].inputType", is("MANUAL")))
                 .andExpect(jsonPath("$.result[0].coinType", is("BTC")));
 
-        mockMvc.perform(get("/api/trades/{id}", tradeId))
+        mockMvc.perform(get("/api/trades/{id}", tradeId)
+                        .header("Authorization", bearer(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.tradeId", is(tradeId.intValue())))
                 .andExpect(jsonPath("$.result.price").value(closeTo(90000000.0, 0.001), Double.class))
                 .andExpect(jsonPath("$.result.createdAt").exists());
 
         mockMvc.perform(patch("/api/trades/{id}", tradeId)
+                        .header("Authorization", bearer(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -74,13 +81,15 @@ class TradeControllerTest {
                 .andExpect(jsonPath("$.result.quantity").value(closeTo(0.04715290, 0.000000001), Double.class))
                 .andExpect(jsonPath("$.result.price").value(closeTo(91000000.0, 0.001), Double.class));
 
-        mockMvc.perform(delete("/api/trades/{id}", tradeId))
+        mockMvc.perform(delete("/api/trades/{id}", tradeId)
+                        .header("Authorization", bearer(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess", is(true)))
                 .andExpect(jsonPath("$.code", is("COMMON200_1")))
                 .andExpect(jsonPath("$.message", is("삭제되었습니다.")));
 
-        mockMvc.perform(get("/api/trades/{id}", tradeId))
+        mockMvc.perform(get("/api/trades/{id}", tradeId)
+                        .header("Authorization", bearer(1L)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code", is("TRADE404")));
     }
@@ -90,14 +99,30 @@ class TradeControllerTest {
         Long tradeId = createManualTrade();
 
         mockMvc.perform(get("/api/trades/{id}", tradeId)
-                        .header("X-User-Id", "2"))
+                        .header("Authorization", bearer(2L)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code", is("TRADE403")));
     }
 
     @Test
+    void requestWithoutTokenReturnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/trades"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code", is("COMMON401")));
+    }
+
+    @Test
+    void xUserIdHeaderDoesNotAuthenticateRequest() throws Exception {
+        mockMvc.perform(get("/api/trades")
+                        .header("X-User-Id", "1"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code", is("COMMON401")));
+    }
+
+    @Test
     void validationErrorReturnsApiResponse() throws Exception {
         mockMvc.perform(post("/api/trades/manual")
+                        .header("Authorization", bearer(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -115,6 +140,7 @@ class TradeControllerTest {
 
     private Long createManualTrade() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/trades/manual")
+                        .header("Authorization", bearer(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -138,5 +164,9 @@ class TradeControllerTest {
 
         Number id = com.jayway.jsonpath.JsonPath.read(result.getResponse().getContentAsString(), "$.result.tradeId");
         return id.longValue();
+    }
+
+    private String bearer(Long memberId) {
+        return "Bearer " + jwtTokenProvider.createAccessToken(memberId);
     }
 }

@@ -6,7 +6,6 @@ import com.boki.backend.domain.exchange.dto.response.ApiKeySaveResponse;
 import com.boki.backend.domain.exchange.entity.ApiKey;
 import com.boki.backend.domain.exchange.repository.ApiKeyRepository;
 import com.boki.backend.domain.exchange.util.SecretKeyEncryptor;
-import com.boki.backend.global.auth.AuthenticatedUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,13 +18,10 @@ public class ExchangeApiKeyServiceImpl implements ExchangeApiKeyService {
     private final ApiKeyRepository apiKeyRepository;
     private final UpbitClient upbitClient;
     private final SecretKeyEncryptor secretKeyEncryptor;
-    private final AuthenticatedUserProvider authenticatedUserProvider;
 
     @Override
     @Transactional
-    public ApiKeySaveResponse saveCredential(ApiKeySaveRequest request) {
-        Long memberId = authenticatedUserProvider.getCurrentUserId();
-
+    public ApiKeySaveResponse saveCredential(Long memberId, ApiKeySaveRequest request) {
         upbitClient.validateCredentials(request.accessKey(), request.secretKey());
         String encryptedSecretKey = secretKeyEncryptor.encrypt(request.secretKey());
 
