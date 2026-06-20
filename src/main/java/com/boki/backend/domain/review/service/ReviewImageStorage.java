@@ -1,11 +1,9 @@
 package com.boki.backend.domain.review.service;
 
-import java.util.List;
+import com.boki.backend.global.storage.service.S3ObjectStorage;
 import org.springframework.web.multipart.MultipartFile;
 
-public interface ReviewImageStorage {
+public interface ReviewImageStorage extends S3ObjectStorage {
 
     ReviewImageUploadResult upload(MultipartFile file, Long memberId, Long reviewId, int orderIndex);
-
-    void deleteAll(List<String> objectKeys);
 }

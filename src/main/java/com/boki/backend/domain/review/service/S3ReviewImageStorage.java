@@ -5,7 +5,6 @@ import com.boki.backend.global.apiPayload.exception.GeneralException;
 import com.boki.backend.global.config.S3Properties;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
-import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -63,17 +62,15 @@ public class S3ReviewImageStorage implements ReviewImageStorage {
     }
 
     @Override
-    public void deleteAll(List<String> objectKeys) {
-        for (String objectKey : objectKeys) {
-            try {
-                s3Client.deleteObject(DeleteObjectRequest.builder()
-                        .bucket(properties.bucket())
-                        .key(objectKey)
-                        .build());
-            } catch (SdkException exception) {
-                log.warn("Failed to delete review image from S3. bucket={}, key={}", properties.bucket(), objectKey, exception);
-                throw new GeneralException(ReviewErrorCode.REVIEW_IMAGE_UPLOAD_FAILED);
-            }
+    public void delete(String bucket, String objectKey) {
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(objectKey)
+                    .build());
+        } catch (SdkException exception) {
+            log.warn("Failed to delete review image from S3. bucket={}, key={}", bucket, objectKey, exception);
+            throw new GeneralException(ReviewErrorCode.REVIEW_IMAGE_DELETE_FAILED);
         }
     }
 

@@ -5,7 +5,9 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -30,13 +32,14 @@ import com.boki.backend.domain.trade.entity.Trade;
 import com.boki.backend.domain.trade.entity.TradeInputType;
 import com.boki.backend.domain.trade.entity.TradeType;
 import com.boki.backend.domain.trade.repository.TradeRepository;
+import com.boki.backend.global.storage.entity.S3CleanupStatus;
+import com.boki.backend.global.storage.repository.S3CleanupTaskRepository;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -44,6 +47,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.web.multipart.MultipartFile;
@@ -74,14 +78,18 @@ class TradeReviewControllerTest {
     @Autowired
     private ReviewScoreRepository reviewScoreRepository;
 
-    @Autowired
+    @MockitoSpyBean
     private ReviewImageRepository reviewImageRepository;
+
+    @MockitoSpyBean
+    private S3CleanupTaskRepository cleanupTaskRepository;
 
     @MockitoBean
     private ReviewImageStorage reviewImageStorage;
 
     @BeforeEach
     void setUp() {
+        cleanupTaskRepository.deleteAll();
         reviewImageRepository.deleteAll();
         reviewScoreRepository.deleteAll();
         tradeReviewRepository.deleteAll();
@@ -169,7 +177,6 @@ class TradeReviewControllerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void patchWithoutImagesKeepsExistingImagesAndPatchWithImagesReplacesThem() throws Exception {
         RuleSet ruleSet = createRuleSet(1L);
         Rule buyRule1 = createRule(ruleSet, RuleType.BUY, "기술적 분석 지표 3개 이상 확인하기", 0, true);
@@ -201,7 +208,7 @@ class TradeReviewControllerTest {
                 .andExpect(jsonPath("$.result.content", is("수정된 복기 내용")))
                 .andExpect(jsonPath("$.result.imageUrls[0]", is("https://cdn.example.com/object-0")));
 
-        verify(reviewImageStorage, never()).deleteAll(List.of("object-0"));
+        verify(reviewImageStorage, never()).delete(anyString(), anyString());
 
         MockMultipartHttpServletRequestBuilder patchWithImages =
                 multipart("/api/reviews/{reviewId}", reviewId);
@@ -228,9 +235,13 @@ class TradeReviewControllerTest {
                 .andExpect(jsonPath("$.result.content", is("이미지 교체")))
                 .andExpect(jsonPath("$.result.imageUrls", hasSize(1)));
 
-        ArgumentCaptor<List<String>> deletedKeys = ArgumentCaptor.forClass(List.class);
-        verify(reviewImageStorage).deleteAll(deletedKeys.capture());
-        org.assertj.core.api.Assertions.assertThat(deletedKeys.getValue()).containsExactly("object-0");
+        verify(reviewImageStorage, never()).delete(anyString(), anyString());
+        org.assertj.core.api.Assertions.assertThat(cleanupTaskRepository.findAll())
+                .singleElement()
+                .satisfies(task -> {
+                    org.assertj.core.api.Assertions.assertThat(task.getObjectKey()).isEqualTo("object-0");
+                    org.assertj.core.api.Assertions.assertThat(task.getStatus()).isEqualTo(S3CleanupStatus.PENDING);
+                });
     }
 
     @Test
@@ -263,11 +274,17 @@ class TradeReviewControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.imageUrls", hasSize(0)));
 
-        verify(reviewImageStorage).deleteAll(List.of("object-0"));
+        verify(reviewImageStorage, never()).delete(anyString(), anyString());
+        org.assertj.core.api.Assertions.assertThat(cleanupTaskRepository.findAll())
+                .singleElement()
+                .satisfies(task -> {
+                    org.assertj.core.api.Assertions.assertThat(task.getObjectKey()).isEqualTo("object-0");
+                    org.assertj.core.api.Assertions.assertThat(task.getStatus()).isEqualTo(S3CleanupStatus.PENDING);
+                });
     }
 
     @Test
-    void deleteReviewDeletesDatabaseRowsAndS3Objects() throws Exception {
+    void deleteReviewDeletesDatabaseRowsAndCreatesS3CleanupTask() throws Exception {
         RuleSet ruleSet = createRuleSet(1L);
         Rule buyRule1 = createRule(ruleSet, RuleType.BUY, "기술적 분석 지표 3개 이상 확인하기", 0, true);
         Rule buyRule2 = createRule(ruleSet, RuleType.BUY, "매수할 때 분할매수로 진행하기", 1, true);
@@ -282,7 +299,53 @@ class TradeReviewControllerTest {
         org.assertj.core.api.Assertions.assertThat(tradeReviewRepository.findByTradeId(trade.getTradeId())).isEmpty();
         org.assertj.core.api.Assertions.assertThat(reviewScoreRepository.findAll()).isEmpty();
         org.assertj.core.api.Assertions.assertThat(reviewImageRepository.findAll()).isEmpty();
-        verify(reviewImageStorage).deleteAll(List.of("object-0"));
+        verify(reviewImageStorage, never()).delete(anyString(), anyString());
+        org.assertj.core.api.Assertions.assertThat(cleanupTaskRepository.findAll())
+                .singleElement()
+                .satisfies(task -> {
+                    org.assertj.core.api.Assertions.assertThat(task.getObjectKey()).isEqualTo("object-0");
+                    org.assertj.core.api.Assertions.assertThat(task.getStatus()).isEqualTo(S3CleanupStatus.PENDING);
+                });
+    }
+
+    @Test
+    void deleteReviewIsIdempotent() throws Exception {
+        RuleSet ruleSet = createRuleSet(1L);
+        Rule buyRule1 = createRule(ruleSet, RuleType.BUY, "기술적 분석 지표 3개 이상 확인하기", 0, true);
+        Rule buyRule2 = createRule(ruleSet, RuleType.BUY, "매수할 때 분할매수로 진행하기", 1, true);
+        Trade trade = createTrade(1L, ruleSet.getId(), TradeType.BUY);
+        createReview(trade, ruleSet, buyRule1, buyRule2);
+
+        mockMvc.perform(delete("/api/trades/{tradeId}/reviews", trade.getTradeId())
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(delete("/api/trades/{tradeId}/reviews", trade.getTradeId())
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isOk());
+
+        org.assertj.core.api.Assertions.assertThat(cleanupTaskRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    void cleanupTaskSaveFailureRollsBackReviewDeletion() throws Exception {
+        RuleSet ruleSet = createRuleSet(1L);
+        Rule buyRule1 = createRule(ruleSet, RuleType.BUY, "기술적 분석 지표 3개 이상 확인하기", 0, true);
+        Rule buyRule2 = createRule(ruleSet, RuleType.BUY, "매수할 때 분할매수로 진행하기", 1, true);
+        Trade trade = createTrade(1L, ruleSet.getId(), TradeType.BUY);
+        createReview(trade, ruleSet, buyRule1, buyRule2);
+        doThrow(new RuntimeException("cleanup task DB failure"))
+                .when(cleanupTaskRepository)
+                .saveAll(any());
+
+        mockMvc.perform(delete("/api/trades/{tradeId}/reviews", trade.getTradeId())
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isInternalServerError());
+
+        org.assertj.core.api.Assertions.assertThat(tradeReviewRepository.findByTradeId(trade.getTradeId())).isPresent();
+        org.assertj.core.api.Assertions.assertThat(reviewScoreRepository.findAll()).hasSize(2);
+        org.assertj.core.api.Assertions.assertThat(reviewImageRepository.findAll()).hasSize(1);
+        org.assertj.core.api.Assertions.assertThat(cleanupTaskRepository.findAll()).isEmpty();
     }
 
     @Test
@@ -340,6 +403,34 @@ class TradeReviewControllerTest {
                         .header("Authorization", bearer(1L)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code", is("REVIEW400_4")));
+    }
+
+    @Test
+    void failedUploadCompensationCreatesCleanupTaskInIndependentTransaction() throws Exception {
+        RuleSet ruleSet = createRuleSet(1L);
+        Rule buyRule1 = createRule(ruleSet, RuleType.BUY, "기술적 분석 지표 3개 이상 확인하기", 0, true);
+        Rule buyRule2 = createRule(ruleSet, RuleType.BUY, "매수할 때 분할매수로 진행하기", 1, true);
+        Trade trade = createTrade(1L, ruleSet.getId(), TradeType.BUY);
+        doThrow(new RuntimeException("review image DB failure"))
+                .when(reviewImageRepository)
+                .saveAll(any());
+        doThrow(new RuntimeException("S3 compensation failure"))
+                .when(reviewImageStorage)
+                .delete("boki-test-bucket", "object-0");
+
+        mockMvc.perform(multipart("/api/trades/{tradeId}/reviews", trade.getTradeId())
+                        .file(reviewRequest(ruleSet, buyRule1, buyRule2, "보상 삭제 실패"))
+                        .file(imagePart("images", "chart.png", "image/png"))
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isInternalServerError());
+
+        org.assertj.core.api.Assertions.assertThat(tradeReviewRepository.findByTradeId(trade.getTradeId())).isEmpty();
+        org.assertj.core.api.Assertions.assertThat(cleanupTaskRepository.findAll())
+                .singleElement()
+                .satisfies(task -> {
+                    org.assertj.core.api.Assertions.assertThat(task.getObjectKey()).isEqualTo("object-0");
+                    org.assertj.core.api.Assertions.assertThat(task.getStatus()).isEqualTo(S3CleanupStatus.PENDING);
+                });
     }
 
     private Long createReview(Trade trade, RuleSet ruleSet, Rule buyRule1, Rule buyRule2) throws Exception {

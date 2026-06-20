@@ -17,7 +17,8 @@ public enum ReviewErrorCode implements BaseErrorCode {
     REVIEW_IMAGE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "REVIEW400_4", "복기 이미지는 최대 3장까지 업로드할 수 있습니다."),
     REVIEW_IMAGE_UNSUPPORTED_TYPE(HttpStatus.BAD_REQUEST, "REVIEW400_5", "지원하지 않는 이미지 형식입니다."),
     REVIEW_IMAGE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "REVIEW400_6", "이미지 파일 크기를 초과했습니다."),
-    REVIEW_IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "REVIEW500_1", "복기 이미지 업로드에 실패했습니다.");
+    REVIEW_IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "REVIEW500_1", "복기 이미지 업로드에 실패했습니다."),
+    REVIEW_IMAGE_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "REVIEW500_2", "복기 이미지 삭제에 실패했습니다.");
 
     private final HttpStatus status;
     private final String code;

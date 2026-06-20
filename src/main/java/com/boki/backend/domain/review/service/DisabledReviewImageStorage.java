@@ -3,7 +3,6 @@ package com.boki.backend.domain.review.service;
 import com.boki.backend.domain.review.exception.ReviewErrorCode;
 import com.boki.backend.global.apiPayload.exception.GeneralException;
 import jakarta.annotation.PostConstruct;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
@@ -26,7 +25,7 @@ public class DisabledReviewImageStorage implements ReviewImageStorage {
     }
 
     @Override
-    public void deleteAll(List<String> objectKeys) {
-        // 구현 X
+    public void delete(String bucket, String objectKey) {
+        throw new GeneralException(ReviewErrorCode.REVIEW_IMAGE_DELETE_FAILED);
     }
 }

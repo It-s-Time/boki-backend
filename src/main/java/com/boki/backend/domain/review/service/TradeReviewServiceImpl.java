@@ -21,6 +21,8 @@ import com.boki.backend.domain.trade.entity.Trade;
 import com.boki.backend.domain.trade.exception.TradeErrorCode;
 import com.boki.backend.domain.trade.repository.TradeRepository;
 import com.boki.backend.global.apiPayload.exception.GeneralException;
+import com.boki.backend.global.config.S3Properties;
+import com.boki.backend.global.storage.service.S3CleanupTaskService;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -30,11 +32,13 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class TradeReviewServiceImpl implements TradeReviewService {
@@ -54,6 +58,8 @@ public class TradeReviewServiceImpl implements TradeReviewService {
     private final ReviewScoreRepository reviewScoreRepository;
     private final ReviewImageRepository reviewImageRepository;
     private final ReviewImageStorage reviewImageStorage;
+    private final S3CleanupTaskService s3CleanupTaskService;
+    private final S3Properties s3Properties;
 
     @Override
     @Transactional
@@ -125,8 +131,12 @@ public class TradeReviewServiceImpl implements TradeReviewService {
     @Override
     @Transactional
     public void deleteReview(Long memberId, Long tradeId) {
+        getOwnedTrade(memberId, tradeId);
         TradeReview review = tradeReviewRepository.findByTradeIdAndMemberId(tradeId, memberId)
-                .orElseThrow(() -> new GeneralException(ReviewErrorCode.REVIEW_NOT_FOUND));
+                .orElse(null);
+        if (review == null) {
+            return;
+        }
         deleteImages(review);
         reviewScoreRepository.deleteAllByReviewReviewId(review.getReviewId());
         tradeReviewRepository.delete(review);
@@ -246,16 +256,11 @@ public class TradeReviewServiceImpl implements TradeReviewService {
                 .map(ReviewImage::getObjectKey)
                 .toList();
 
-        List<String> uploadedObjectKeys = uploadAndSaveImages(review, imageFiles);
-        try {
-            if (!previousObjectKeys.isEmpty()) {
-                reviewImageStorage.deleteAll(previousObjectKeys);
-            }
-            reviewImageRepository.deleteAll(previousImages);
-        } catch (RuntimeException exception) {
-            safeDelete(uploadedObjectKeys);
-            throw exception;
+        uploadAndSaveImages(review, imageFiles);
+        if (!previousObjectKeys.isEmpty()) {
+            s3CleanupTaskService.enqueueAll(previousObjectKeys);
         }
+        reviewImageRepository.deleteAll(previousImages);
     }
 
     private List<String> uploadAndSaveImages(TradeReview review, List<MultipartFile> imageFiles) {
@@ -283,6 +288,7 @@ public class TradeReviewServiceImpl implements TradeReviewService {
                         .build());
             }
             reviewImageRepository.saveAll(reviewImages);
+            reviewImageRepository.flush();
             return uploadedObjectKeys;
         } catch (RuntimeException exception) {
             safeDelete(uploadedObjectKeys);
@@ -297,7 +303,7 @@ public class TradeReviewServiceImpl implements TradeReviewService {
                 .map(ReviewImage::getObjectKey)
                 .toList();
         if (!objectKeys.isEmpty()) {
-            reviewImageStorage.deleteAll(objectKeys);
+            s3CleanupTaskService.enqueueAll(objectKeys);
         }
         reviewImageRepository.deleteAll(images);
     }
@@ -306,9 +312,20 @@ public class TradeReviewServiceImpl implements TradeReviewService {
         if (objectKeys.isEmpty()) {
             return;
         }
-        try {
-            reviewImageStorage.deleteAll(objectKeys);
-        } catch (RuntimeException ignored) {
+        List<String> failedObjectKeys = new ArrayList<>();
+        for (String objectKey : objectKeys) {
+            try {
+                reviewImageStorage.delete(s3Properties.bucket(), objectKey);
+            } catch (RuntimeException ignored) {
+                failedObjectKeys.add(objectKey);
+            }
+        }
+        if (!failedObjectKeys.isEmpty()) {
+            try {
+                s3CleanupTaskService.enqueueAllInNewTransaction(failedObjectKeys);
+            } catch (RuntimeException exception) {
+                log.error("Failed to persist S3 cleanup tasks. objectKeys={}", failedObjectKeys, exception);
+            }
         }
     }
 

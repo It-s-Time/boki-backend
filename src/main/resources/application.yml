@@ -47,3 +47,5 @@ boki:
       public-base-url: ${AWS_S3_PUBLIC_BASE_URL:}
       access-key: ${AWS_ACCESS_KEY_ID:}
       secret-key: ${AWS_SECRET_ACCESS_KEY:}
+      cleanup:
+        fixed-delay-ms: ${AWS_S3_CLEANUP_FIXED_DELAY_MS:60000}
