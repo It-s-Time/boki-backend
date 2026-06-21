@@ -7,6 +7,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,6 +47,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(GeneralErrorCode.VALIDATION_ERROR.getStatus())
                 .body(ApiResponse.onFailure(GeneralErrorCode.VALIDATION_ERROR, errors));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMediaTypeNotSupportedException(
+            HttpMediaTypeNotSupportedException exception
+    ) {
+        return ResponseEntity
+                .status(GeneralErrorCode.UNSUPPORTED_MEDIA_TYPE.getStatus())
+                .body(ApiResponse.onFailure(GeneralErrorCode.UNSUPPORTED_MEDIA_TYPE, null));
     }
 
     @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})

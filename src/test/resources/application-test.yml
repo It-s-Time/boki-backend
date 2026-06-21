@@ -17,6 +17,11 @@ spring:
       port: 6379
 
 boki:
+  aws:
+    s3:
+      enabled: false
+      region: ap-northeast-2
+      bucket: boki-test-bucket
   jwt:
     secret: boki-test-jwt-secret-key-must-be-at-least-32-bytes
     access-token-expiration-ms: 3600000
