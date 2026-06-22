@@ -4,11 +4,13 @@ import com.boki.backend.domain.ai.exception.AiReportErrorCode;
 import com.boki.backend.global.apiPayload.exception.GeneralException;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+@Slf4j
 @Component
 public class OpenAiClient {
 
@@ -45,6 +47,7 @@ public class OpenAiClient {
             Map<?, ?> message = (Map<?, ?>) firstChoice.get("message");
             return (String) message.get("content");
         } catch (Exception e) {
+            log.error("OpenAI API 호출 실패: {}", e.getMessage(), e);
             throw new GeneralException(AiReportErrorCode.AI_API_CALL_FAILED);
         }
     }
