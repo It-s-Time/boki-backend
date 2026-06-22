@@ -15,4 +15,6 @@ public interface RuleRepository extends JpaRepository<Rule, Long> {
     int countByRuleSetIdAndTypeAndIsActiveTrue(Long ruleSetId, RuleType type);
 
     List<Rule> findByRuleSetIdAndIsActiveTrueOrderByOrderIndexAsc(Long ruleSetId);
+
+    List<Rule> findByRuleSetIdAndTypeAndIsActiveTrueOrderByOrderIndexAsc(Long ruleSetId, RuleType type);
 }
