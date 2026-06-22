@@ -7,6 +7,10 @@ import com.boki.backend.domain.ai.entity.AiReport;
 import com.boki.backend.domain.ai.entity.Grade;
 import com.boki.backend.domain.ai.exception.AiReportErrorCode;
 import com.boki.backend.domain.ai.repository.AiReportRepository;
+import com.boki.backend.domain.review.entity.ReviewScore;
+import com.boki.backend.domain.review.entity.TradeReview;
+import com.boki.backend.domain.review.repository.ReviewScoreRepository;
+import com.boki.backend.domain.review.repository.TradeReviewRepository;
 import com.boki.backend.domain.ruleset.entity.Rule;
 import com.boki.backend.domain.ruleset.repository.RuleRepository;
 import com.boki.backend.domain.trade.entity.Trade;
@@ -14,6 +18,8 @@ import com.boki.backend.domain.trade.repository.TradeRepository;
 import com.boki.backend.global.apiPayload.exception.GeneralException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -40,6 +46,8 @@ public class AiReportServiceImpl implements AiReportService {
 
     private final TradeRepository tradeRepository;
     private final RuleRepository ruleRepository;
+    private final TradeReviewRepository tradeReviewRepository;
+    private final ReviewScoreRepository reviewScoreRepository;
     private final AiReportRepository aiReportRepository;
     private final OpenAiClient openAiClient;
     private final ObjectMapper objectMapper;
@@ -65,14 +73,24 @@ public class AiReportServiceImpl implements AiReportService {
         aiReportRepository.save(report);
 
         try {
-            String userPrompt = buildUserPrompt(trade);
-            String rawContent = openAiClient.requestCompletion(SYSTEM_PROMPT, userPrompt);
+            List<Rule> rules = fetchRules(trade);
+            Optional<TradeReview> reviewOpt = tradeReviewRepository.findByTradeId(tradeId);
 
-            // TODO: 복기 점수 데이터 연동 후 compliance_rate 및 grade 계산 추가
-            // ex) Double complianceRate = reviewScoreService.calcComplianceRate(tradeId);
-            // ex) Grade grade = Grade.from(complianceRate);
             Double complianceRate = null;
             Grade grade = null;
+
+            if (reviewOpt.isPresent()) {
+                List<ReviewScore> scores = reviewScoreRepository.findAllByReviewReviewId(
+                        reviewOpt.get().getReviewId());
+                if (!scores.isEmpty()) {
+                    double total = scores.stream().mapToInt(ReviewScore::getScore).sum();
+                    complianceRate = (total / (scores.size() * 5.0)) * 100;
+                    grade = Grade.from(complianceRate);
+                }
+            }
+
+            String userPrompt = buildUserPrompt(trade, rules, reviewOpt, complianceRate);
+            String rawContent = openAiClient.requestCompletion(SYSTEM_PROMPT, userPrompt);
 
             report.complete(rawContent, complianceRate, grade);
             return toResDTO(report, rawContent);
@@ -98,8 +116,17 @@ public class AiReportServiceImpl implements AiReportService {
         return toResDTO(report, report.getContent());
     }
 
-    private String buildUserPrompt(Trade trade) {
+    private List<Rule> fetchRules(Trade trade) {
+        if (trade.getRuleSetId() == null) {
+            return List.of();
+        }
+        return ruleRepository.findByRuleSetIdAndIsActiveTrueOrderByOrderIndexAsc(trade.getRuleSetId());
+    }
+
+    private String buildUserPrompt(Trade trade, List<Rule> rules,
+            Optional<TradeReview> reviewOpt, Double complianceRate) {
         StringBuilder sb = new StringBuilder();
+
         sb.append("[거래 정보]\n");
         sb.append("- 거래 유형: ").append(trade.getTradeType()).append("\n");
         sb.append("- 종목: ").append(trade.getCoinType()).append("\n");
@@ -107,21 +134,37 @@ public class AiReportServiceImpl implements AiReportService {
         sb.append("- 수량: ").append(trade.getQuantity()).append("\n");
         sb.append("- 거래 일시: ").append(trade.getTradedAt()).append("\n\n");
 
-        if (trade.getRuleSetId() != null) {
-            List<Rule> rules = ruleRepository.findByRuleSetIdAndIsActiveTrueOrderByOrderIndexAsc(trade.getRuleSetId());
-            if (!rules.isEmpty()) {
-                sb.append("[적용된 매매 원칙]\n");
-                rules.forEach(rule ->
-                        sb.append("- [").append(rule.getType()).append("] ").append(rule.getContent()).append("\n")
-                );
+        if (!rules.isEmpty()) {
+            sb.append("[적용된 매매 원칙]\n");
+            rules.forEach(rule ->
+                    sb.append("- [").append(rule.getType()).append("] ").append(rule.getContent()).append("\n")
+            );
+            sb.append("\n");
+        }
+
+        if (reviewOpt.isPresent()) {
+            TradeReview review = reviewOpt.get();
+
+            if (review.getContent() != null && !review.getContent().isBlank()) {
+                sb.append("[복기 메모]\n");
+                sb.append(review.getContent()).append("\n\n");
+            }
+
+            if (complianceRate != null && !rules.isEmpty()) {
+                Map<Long, Rule> ruleMap = rules.stream()
+                        .collect(Collectors.toMap(Rule::getId, r -> r));
+                List<ReviewScore> scores = reviewScoreRepository.findAllByReviewReviewId(review.getReviewId());
+
+                sb.append("[복기 점수]\n");
+                sb.append(String.format("- 전체 준수율: %.1f%%\n", complianceRate));
+                scores.forEach(score -> {
+                    Rule rule = ruleMap.get(score.getRuleId());
+                    String ruleName = rule != null ? rule.getContent() : "규칙 #" + score.getRuleId();
+                    sb.append("- ").append(ruleName).append(": ").append(score.getScore()).append("/5\n");
+                });
                 sb.append("\n");
             }
         }
-
-        // TODO: 복기 점수 데이터 연동 후 아래 섹션 추가
-        // sb.append("[복기 점수]\n");
-        // reviewScores.forEach(score -> sb.append("- ").append(score.getRuleContent())
-        //         .append(": ").append(score.getScore()).append("/5\n"));
 
         return sb.toString();
     }
