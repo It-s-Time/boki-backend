@@ -5,6 +5,7 @@ import com.boki.backend.domain.ai.dto.AiContentDTO;
 import com.boki.backend.domain.ai.dto.response.AiReportResDTO;
 import com.boki.backend.domain.ai.entity.AiReport;
 import com.boki.backend.domain.ai.entity.Grade;
+import com.boki.backend.domain.ai.entity.ReportStatus;
 import com.boki.backend.domain.ai.exception.AiReportErrorCode;
 import com.boki.backend.domain.ai.repository.AiReportRepository;
 import com.boki.backend.domain.review.entity.ReviewScore;
@@ -53,7 +54,7 @@ public class AiReportServiceImpl implements AiReportService {
     private final ObjectMapper objectMapper;
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = GeneralException.class)
     public AiReportResDTO generateReport(Long memberId, Long tradeId) {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new GeneralException(AiReportErrorCode.TRADE_NOT_FOUND));
@@ -62,7 +63,8 @@ public class AiReportServiceImpl implements AiReportService {
             throw new GeneralException(AiReportErrorCode.TRADE_ACCESS_DENIED);
         }
 
-        if (aiReportRepository.existsByTradeId(tradeId)) {
+        if (aiReportRepository.existsByTradeIdAndStatusIn(
+                tradeId, List.of(ReportStatus.PENDING, ReportStatus.COMPLETED))) {
             throw new GeneralException(AiReportErrorCode.AI_REPORT_ALREADY_EXISTS);
         }
 
