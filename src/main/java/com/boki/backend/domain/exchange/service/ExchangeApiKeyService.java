@@ -5,5 +5,5 @@ import com.boki.backend.domain.exchange.dto.response.ApiKeySaveResponse;
 
 public interface ExchangeApiKeyService {
 
-    ApiKeySaveResponse saveCredential(ApiKeySaveRequest request);
+    ApiKeySaveResponse saveCredential(Long memberId, ApiKeySaveRequest request);
 }

@@ -11,3 +11,18 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
     open-in-view: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+boki:
+  aws:
+    s3:
+      enabled: false
+      region: ap-northeast-2
+      bucket: boki-test-bucket
+  jwt:
+    secret: boki-test-jwt-secret-key-must-be-at-least-32-bytes
+    access-token-expiration-ms: 3600000
+    refresh-token-expiration-ms: 1209600000

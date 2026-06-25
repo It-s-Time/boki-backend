@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,18 +30,21 @@ public class ExchangeController {
     @Operation(summary = "거래소 API Key 등록/갱신", description = "현재 사용자 기준 거래소 API Key를 등록하거나 갱신합니다.")
     @PostMapping("/api-key")
     public ResponseEntity<ApiResponse<ApiKeySaveResponse>> saveApiKey(
+            @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody ApiKeySaveRequest request
     ) {
         return ResponseEntity
                 .status(GeneralSuccessCode.OK.getStatus())
-                .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, exchangeApiKeyService.saveCredential(request)));
+                .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, exchangeApiKeyService.saveCredential(memberId, request)));
     }
 
     @Operation(summary = "거래소 거래 수동 동기화", description = "현재 사용자 API Key로 거래소 종료 주문을 조회해 거래 내역을 저장합니다.")
     @PostMapping("/sync/trades")
-    public ResponseEntity<ApiResponse<ExchangeTradeSyncResponse>> syncTrades() {
+    public ResponseEntity<ApiResponse<ExchangeTradeSyncResponse>> syncTrades(
+            @AuthenticationPrincipal Long memberId
+    ) {
         return ResponseEntity
                 .status(GeneralSuccessCode.OK.getStatus())
-                .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, exchangeTradeSyncService.syncCurrentUserTrades()));
+                .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, exchangeTradeSyncService.syncCurrentUserTrades(memberId)));
     }
 }
