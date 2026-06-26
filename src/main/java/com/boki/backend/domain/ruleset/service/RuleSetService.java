@@ -96,6 +96,41 @@ public class RuleSetService {
     }
 
     @Transactional
+    public RuleSetResDTO createRuleSetWithRules(Long userId, RuleSetWithRulesCreateReqDTO request) {
+        RuleSet ruleSet = RuleSet.builder()
+                .memberId(userId)
+                .name(request.getName())
+                .type(RuleSetType.CUSTOM)
+                .build();
+
+        RuleSet savedRuleSet = ruleSetRepository.save(ruleSet);
+
+        if (request.getBuyRules() != null) {
+            for (int i = 0; i < request.getBuyRules().size(); i++) {
+                savedRuleSet.addRule(Rule.builder()
+                        .ruleSet(savedRuleSet)
+                        .type(RuleType.BUY)
+                        .content(request.getBuyRules().get(i))
+                        .orderIndex(i)
+                        .build());
+            }
+        }
+
+        if (request.getSellRules() != null) {
+            for (int i = 0; i < request.getSellRules().size(); i++) {
+                savedRuleSet.addRule(Rule.builder()
+                        .ruleSet(savedRuleSet)
+                        .type(RuleType.SELL)
+                        .content(request.getSellRules().get(i))
+                        .orderIndex(i)
+                        .build());
+            }
+        }
+
+        return RuleSetResDTO.from(savedRuleSet);
+    }
+
+    @Transactional
     public RuleSetResDTO addBuyRule(Long userId, Long ruleSetId, RuleCreateReqDTO request) {
         return addRule(userId, ruleSetId, request, RuleType.BUY);
     }
