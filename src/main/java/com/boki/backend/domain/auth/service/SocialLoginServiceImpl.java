@@ -23,10 +23,17 @@ public class SocialLoginServiceImpl implements SocialLoginService {
     private final MemberRepository memberRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final OAuthLoginSessionService oauthLoginSessionService;
 
     @Override
-    public String getAuthorizationUri(SocialProvider provider) {
-        return findClient(provider).getAuthorizationUri();
+    public String getAuthorizationUri(SocialProvider provider, String redirectUri) {
+        String state = oauthLoginSessionService.createState(redirectUri);
+        return findClient(provider).getAuthorizationUri(state);
+    }
+
+    @Override
+    public String consumeRedirectUri(String state) {
+        return oauthLoginSessionService.consumeState(state);
     }
 
     @Override
@@ -41,6 +48,16 @@ public class SocialLoginServiceImpl implements SocialLoginService {
                         .build()));
 
         return issueTokens(member);
+    }
+
+    @Override
+    public String createLoginCode(AuthTokenResponse response) {
+        return oauthLoginSessionService.createLoginCode(response);
+    }
+
+    @Override
+    public AuthTokenResponse exchangeLoginCode(String loginCode) {
+        return oauthLoginSessionService.consumeLoginCode(loginCode);
     }
 
     @Override

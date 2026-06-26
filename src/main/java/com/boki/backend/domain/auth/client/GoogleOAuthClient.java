@@ -33,13 +33,14 @@ public class GoogleOAuthClient implements OAuthClient {
     }
 
     @Override
-    public String getAuthorizationUri() {
+    public String getAuthorizationUri(String state) {
         OAuthProperties.Provider google = getProperties();
         return UriComponentsBuilder.fromUriString(AUTHORIZATION_URI)
                 .queryParam("response_type", "code")
                 .queryParam("client_id", google.clientId())
                 .queryParam("redirect_uri", google.redirectUri())
                 .queryParam("scope", SCOPE)
+                .queryParam("state", state)
                 .encode()
                 .build()
                 .toUriString();
