@@ -5,8 +5,8 @@ import com.boki.backend.domain.ruleset.dto.response.RuleSetResDTO;
 import com.boki.backend.domain.ruleset.entity.*;
 import com.boki.backend.domain.ruleset.repository.RuleRepository;
 import com.boki.backend.domain.ruleset.repository.RuleSetRepository;
-import com.boki.backend.global.exception.CustomException;
-import com.boki.backend.global.exception.ErrorCode;
+import com.boki.backend.domain.ruleset.exception.RuleSetErrorCode;
+import com.boki.backend.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.lang.NonNull;
@@ -65,6 +65,77 @@ public class RuleSetService {
     }
 
     @Transactional
+    public RuleSetResDTO copyFromTemplate(Long userId, Long templateId, RuleSetCopyReqDTO request) {
+        RuleSet template = ruleSetRepository.findById(templateId)
+                .filter(rs -> rs.getType() == RuleSetType.TEMPLATE)
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_SET_NOT_FOUND));
+
+        if (ruleSetRepository.findByMemberIdAndTemplateId(userId, templateId).isPresent()) {
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_ALREADY_EXISTS);
+        }
+
+        RuleSet customCopy = RuleSet.builder()
+                .memberId(userId)
+                .name(request.getName())
+                .type(RuleSetType.CUSTOM)
+                .templateId(template.getId())
+                .build();
+
+        RuleSet savedCopy = ruleSetRepository.save(customCopy);
+
+        template.getRules().stream()
+                .filter(Rule::isActive)
+                .forEach(templateRule -> savedCopy.addRule(Rule.builder()
+                        .ruleSet(savedCopy)
+                        .type(templateRule.getType())
+                        .content(templateRule.getContent())
+                        .orderIndex(templateRule.getOrderIndex())
+                        .build()));
+
+        return RuleSetResDTO.from(savedCopy);
+    }
+
+    @Transactional
+    public RuleSetResDTO createRuleSetWithRules(Long userId, RuleSetWithRulesCreateReqDTO request) {
+        if (ruleSetRepository.existsByMemberIdAndName(userId, request.getName())) {
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_ALREADY_EXISTS);
+        }
+
+        RuleSet ruleSet = RuleSet.builder()
+                .memberId(userId)
+                .name(request.getName())
+                .type(RuleSetType.CUSTOM)
+                .build();
+
+        RuleSet savedRuleSet = ruleSetRepository.save(ruleSet);
+
+        if (request.getBuyRules() != null) {
+            for (int i = 0; i < request.getBuyRules().size(); i++) {
+                savedRuleSet.addRule(Rule.builder()
+                        .ruleSet(savedRuleSet)
+                        .type(RuleType.BUY)
+                        .content(request.getBuyRules().get(i))
+                        .orderIndex(i)
+                        .build());
+            }
+        }
+
+        if (request.getSellRules() != null) {
+            for (int i = 0; i < request.getSellRules().size(); i++) {
+                savedRuleSet.addRule(Rule.builder()
+                        .ruleSet(savedRuleSet)
+                        .type(RuleType.SELL)
+                        .content(request.getSellRules().get(i))
+                        .orderIndex(i)
+                        .build());
+            }
+        }
+
+        ruleSetRepository.flush();
+        return RuleSetResDTO.from(savedRuleSet);
+    }
+
+    @Transactional
     public RuleSetResDTO addBuyRule(Long userId, Long ruleSetId, RuleCreateReqDTO request) {
         return addRule(userId, ruleSetId, request, RuleType.BUY);
     }
@@ -78,7 +149,7 @@ public class RuleSetService {
     public RuleSetResDTO updateRule(Long userId, Long ruleSetId, Long ruleId, RuleUpdateReqDTO request) {
         findRuleSetByUser(userId, ruleSetId);
         Rule rule = ruleRepository.findByIdAndRuleSetIdAndIsActiveTrue(ruleId, ruleSetId)
-                .orElseThrow(() -> new CustomException(ErrorCode.RULE_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_NOT_FOUND));
         rule.update(request.getContent());
         return RuleSetResDTO.from(ruleSetRepository.findById(ruleSetId).get());
     }
@@ -87,17 +158,17 @@ public class RuleSetService {
     public void deleteRule(Long userId, Long ruleSetId, Long ruleId) {
         findRuleSetByUser(userId, ruleSetId);
         Rule rule = ruleRepository.findByIdAndRuleSetIdAndIsActiveTrue(ruleId, ruleSetId)
-                .orElseThrow(() -> new CustomException(ErrorCode.RULE_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_NOT_FOUND));
         rule.deactivate();
     }
 
     // 템플릿은 소유자 체크 없이 조회 가능
     private RuleSet findRuleSetForRead(Long userId, Long ruleSetId) {
         RuleSet ruleSet = ruleSetRepository.findById(ruleSetId)
-                .orElseThrow(() -> new CustomException(ErrorCode.RULE_SET_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_SET_NOT_FOUND));
 
         if (ruleSet.getType() == RuleSetType.CUSTOM && !ruleSet.getMemberId().equals(userId)) {
-            throw new CustomException(ErrorCode.FORBIDDEN);
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_FORBIDDEN);
         }
 
         return ruleSet;
@@ -106,12 +177,12 @@ public class RuleSetService {
     // 수정/삭제는 내 CUSTOM 세트만 가능
     private RuleSet findRuleSetByUser(Long userId, Long ruleSetId) {
         return ruleSetRepository.findByIdAndMemberId(ruleSetId, userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.RULE_SET_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_SET_NOT_FOUND));
     }
 
     private RuleSetResDTO addRule(Long userId, Long ruleSetId, RuleCreateReqDTO request, RuleType ruleType) {
         RuleSet originalRuleSet = ruleSetRepository.findById(ruleSetId)
-                .orElseThrow(() -> new CustomException(ErrorCode.RULE_SET_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_SET_NOT_FOUND));
 
         RuleSet targetRuleSet;
 

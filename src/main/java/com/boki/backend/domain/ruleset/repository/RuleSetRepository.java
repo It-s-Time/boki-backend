@@ -20,4 +20,6 @@ public interface RuleSetRepository extends JpaRepository<RuleSet, Long> {
 
     // 유저의 특정 템플릿 복사본 조회
     Optional<RuleSet> findByMemberIdAndTemplateId(Long memberId, Long templateId);
+
+    boolean existsByMemberIdAndName(Long memberId, String name);
 }
