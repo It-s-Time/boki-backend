@@ -127,6 +127,7 @@ public class RuleSetService {
             }
         }
 
+        ruleSetRepository.flush();
         return RuleSetResDTO.from(savedRuleSet);
     }
 
