@@ -51,6 +51,13 @@ public class RuleSetController {
         return ResponseEntity.ok(ApiResponse.ok(ruleSetService.createRuleSet(userProvider.getCurrentUserId(), request)));
     }
 
+    @Operation(summary = "직접 추가하기 세트 생성", description = "세트 생성과 매수/매도 원칙 추가를 한 번에 처리")
+    @PostMapping("/custom")
+    public ResponseEntity<ApiResponse<RuleSetResDTO>> createRuleSetWithRules(
+            @RequestBody @Valid RuleSetWithRulesCreateReqDTO request) {
+        return ResponseEntity.ok(ApiResponse.ok(ruleSetService.createRuleSetWithRules(userProvider.getCurrentUserId(), request)));
+    }
+
     @Operation(summary = "세트 수정", description = "내 커스텀 룰셋 이름 수정")
     @PatchMapping("/{ruleSetId}")
     public ResponseEntity<ApiResponse<RuleSetResDTO>> updateRuleSet(
