@@ -51,12 +51,19 @@ public class SocialLoginServiceImpl implements SocialLoginService {
                 .orElseThrow(() -> new GeneralException(AuthErrorCode.INVALID_TOKEN));
 
         String accessToken = jwtTokenProvider.createAccessToken(member.getMemberId());
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(member.getMemberId());
+        refreshTokenService.save(
+                member.getMemberId(),
+                newRefreshToken,
+                jwtTokenProvider.getRefreshTokenExpirationMs()
+        );
+
         return new AuthTokenResponse(
                 member.getMemberId(),
                 member.getEmail(),
                 member.getProvider(),
                 accessToken,
-                refreshToken
+                newRefreshToken
         );
     }
 
