@@ -1,9 +1,11 @@
 package com.boki.backend.domain.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.boki.backend.domain.auth.client.OAuthClient;
 import com.boki.backend.domain.auth.dto.response.AuthTokenResponse;
 import com.boki.backend.domain.auth.jwt.JwtTokenProvider;
 import com.boki.backend.domain.member.entity.Member;
@@ -31,14 +33,32 @@ class SocialLoginServiceImplTest {
     @Mock
     private RefreshTokenService refreshTokenService;
 
+    @Mock
+    private OAuthLoginSessionService oauthLoginSessionService;
+
+    private OAuthClient kakaoOAuthClient;
+
     @BeforeEach
     void setUp() {
+        kakaoOAuthClient = mock(OAuthClient.class);
         socialLoginService = new SocialLoginServiceImpl(
-                List.of(),
+                List.of(kakaoOAuthClient),
                 memberRepository,
                 jwtTokenProvider,
-                refreshTokenService
+                refreshTokenService,
+                oauthLoginSessionService
         );
+    }
+
+    @Test
+    void getAuthorizationUriStoresStateAndAddsItToProviderAuthorizationUri() {
+        when(kakaoOAuthClient.supports(SocialProvider.KAKAO)).thenReturn(true);
+        when(oauthLoginSessionService.createState("boki://auth/callback")).thenReturn("state");
+        when(kakaoOAuthClient.getAuthorizationUri("state")).thenReturn("https://kauth.kakao.com/oauth/authorize?state=state");
+
+        String authorizationUri = socialLoginService.getAuthorizationUri(SocialProvider.KAKAO, "boki://auth/callback");
+
+        assertThat(authorizationUri).isEqualTo("https://kauth.kakao.com/oauth/authorize?state=state");
     }
 
     @Test
@@ -65,6 +85,38 @@ class SocialLoginServiceImplTest {
         assertThat(response.refreshToken()).isEqualTo("new-refresh-token");
         verify(refreshTokenService).validate(1L, "old-refresh-token");
         verify(refreshTokenService).save(1L, "new-refresh-token", 1000L);
+    }
+
+    @Test
+    void createLoginCodeLogsInAndStoresTokenResponse() {
+        AuthTokenResponse response = new AuthTokenResponse(
+                1L,
+                "test@test.com",
+                SocialProvider.KAKAO,
+                "access-token",
+                "refresh-token"
+        );
+        when(oauthLoginSessionService.createLoginCode(response)).thenReturn("login-code");
+
+        String loginCode = socialLoginService.createLoginCode(response);
+
+        assertThat(loginCode).isEqualTo("login-code");
+    }
+
+    @Test
+    void exchangeLoginCodeConsumesStoredTokenResponse() {
+        AuthTokenResponse response = new AuthTokenResponse(
+                1L,
+                "test@test.com",
+                SocialProvider.KAKAO,
+                "access-token",
+                "refresh-token"
+        );
+        when(oauthLoginSessionService.consumeLoginCode("login-code")).thenReturn(response);
+
+        AuthTokenResponse result = socialLoginService.exchangeLoginCode("login-code");
+
+        assertThat(result).isEqualTo(response);
     }
 
     private void setMemberId(Member member, Long memberId) throws Exception {

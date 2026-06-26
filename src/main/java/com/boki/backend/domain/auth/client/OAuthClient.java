@@ -6,7 +6,7 @@ public interface OAuthClient {
 
     boolean supports(SocialProvider provider);
 
-    String getAuthorizationUri();
+    String getAuthorizationUri(String state);
 
     OAuthUserInfo getUserInfo(String code);
 }

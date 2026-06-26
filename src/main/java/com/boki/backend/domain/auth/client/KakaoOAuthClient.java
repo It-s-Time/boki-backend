@@ -32,12 +32,13 @@ public class KakaoOAuthClient implements OAuthClient {
     }
 
     @Override
-    public String getAuthorizationUri() {
+    public String getAuthorizationUri(String state) {
         OAuthProperties.Provider kakao = getProperties();
         return UriComponentsBuilder.fromUriString(AUTHORIZATION_URI)
                 .queryParam("response_type", "code")
                 .queryParam("client_id", kakao.clientId())
                 .queryParam("redirect_uri", kakao.redirectUri())
+                .queryParam("state", state)
                 .build()
                 .toUriString();
     }

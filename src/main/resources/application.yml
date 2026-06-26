@@ -35,6 +35,7 @@ boki:
       client-id: ${KAKAO_CLIENT_ID:}
       client-secret: ${KAKAO_CLIENT_SECRET:}
       redirect-uri: ${KAKAO_REDIRECT_URI:}
+    allowed-redirect-uris: ${OAUTH_ALLOWED_REDIRECT_URIS:boki://auth/callback}
   jwt:
     secret: ${JWT_SECRET}
     access-token-expiration-ms: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:3600000}
