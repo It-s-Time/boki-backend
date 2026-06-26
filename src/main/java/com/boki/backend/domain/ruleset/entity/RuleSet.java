@@ -26,6 +26,9 @@ public class RuleSet extends BaseEntity {
     @Column(name = "set_name", nullable = false, length = 50)
     private String name;
 
+    @Column(name = "description", length = 100)
+    private String description;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "set_type", nullable = false)
     private RuleSetType type;
