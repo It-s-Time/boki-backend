@@ -121,4 +121,8 @@ public class Trade {
             this.tradedAt = tradedAt;
         }
     }
+
+    public void assignRuleSet(Long ruleSetId) {
+        this.ruleSetId = ruleSetId;
+    }
 }
