@@ -70,6 +70,10 @@ public class RuleSetService {
                 .filter(rs -> rs.getType() == RuleSetType.TEMPLATE)
                 .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_SET_NOT_FOUND));
 
+        if (ruleSetRepository.findByMemberIdAndTemplateId(userId, templateId).isPresent()) {
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_ALREADY_EXISTS);
+        }
+
         RuleSet customCopy = RuleSet.builder()
                 .memberId(userId)
                 .name(request.getName())
