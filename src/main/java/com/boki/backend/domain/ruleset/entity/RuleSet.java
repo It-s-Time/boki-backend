@@ -8,7 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "rule_sets")
+@Table(name = "rule_sets", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"member_id", "set_name"})
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder

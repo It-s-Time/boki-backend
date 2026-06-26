@@ -97,6 +97,10 @@ public class RuleSetService {
 
     @Transactional
     public RuleSetResDTO createRuleSetWithRules(Long userId, RuleSetWithRulesCreateReqDTO request) {
+        if (ruleSetRepository.existsByMemberIdAndName(userId, request.getName())) {
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_ALREADY_EXISTS);
+        }
+
         RuleSet ruleSet = RuleSet.builder()
                 .memberId(userId)
                 .name(request.getName())
