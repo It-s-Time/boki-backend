@@ -24,6 +24,7 @@ import com.boki.backend.global.apiPayload.exception.GeneralException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +84,8 @@ class ExchangeControllerTest {
         org.hamcrest.MatcherAssert.assertThat(credential.getAccessKey(), is("access-key"));
         org.hamcrest.MatcherAssert.assertThat(credential.getSecretKey(), not("secret-key"));
         org.hamcrest.MatcherAssert.assertThat(secretKeyEncryptor.decrypt(credential.getSecretKey()), is("secret-key"));
+        org.hamcrest.MatcherAssert.assertThat(credential.getNextTradeSyncAt() != null, is(true));
+        org.hamcrest.MatcherAssert.assertThat(credential.getTradeSyncStartedAt(), is(org.hamcrest.Matchers.nullValue()));
         verify(upbitClient).validateCredentials("access-key", "secret-key");
     }
 
@@ -164,17 +167,28 @@ class ExchangeControllerTest {
                 .secretKey(secretKeyEncryptor.encrypt("secret-key"))
                 .build());
 
-        when(upbitClient.getClosedOrders("access-key", "secret-key"))
-                .thenReturn(List.of(new UpbitClosedOrderResponse(
-                        "upbit-order-uuid",
-                        "bid",
-                        "KRW-BTC",
-                        new BigDecimal("106038000"),
-                        new BigDecimal("0.04715290"),
-                        new BigDecimal("0.04715290"),
-                        new BigDecimal("4999999.98220000"),
-                        OffsetDateTime.parse("2026-03-23T14:35:10+09:00")
-                )));
+        AtomicInteger upbitCallCount = new AtomicInteger(0);
+        when(upbitClient.getClosedOrders(
+                org.mockito.ArgumentMatchers.eq("access-key"),
+                org.mockito.ArgumentMatchers.eq("secret-key"),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()
+        ))
+                .thenAnswer(invocation -> {
+                    if (upbitCallCount.getAndIncrement() % 5 == 0) {
+                        return List.of(new UpbitClosedOrderResponse(
+                                "upbit-order-uuid",
+                                "bid",
+                                "KRW-BTC",
+                                new BigDecimal("106038000"),
+                                new BigDecimal("0.04715290"),
+                                new BigDecimal("0.04715290"),
+                                new BigDecimal("4999999.98220000"),
+                                OffsetDateTime.parse("2026-03-23T14:35:10+09:00")
+                        ));
+                    }
+                    return List.of();
+                });
 
         mockMvc.perform(post("/api/exchange/sync/trades")
                         .header("Authorization", bearer(1L)))
