@@ -6,7 +6,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,7 +34,12 @@ public class UpbitJwtProvider {
 
     public String toQueryString(Map<String, String> queryParams) {
         return queryParams.entrySet().stream()
-                .sorted(Comparator.comparing(Map.Entry::getKey))
+                .map(entry -> entry.getKey() + "=" + entry.getValue())
+                .collect(Collectors.joining("&"));
+    }
+
+    public String toEncodedQueryString(Map<String, String> queryParams) {
+        return queryParams.entrySet().stream()
                 .map(entry -> encode(entry.getKey()) + "=" + encode(entry.getValue()))
                 .collect(Collectors.joining("&"));
     }
