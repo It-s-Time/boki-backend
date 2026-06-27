@@ -50,6 +50,15 @@ boki:
       secret-key: ${AWS_SECRET_ACCESS_KEY:}
       cleanup:
         fixed-delay-ms: ${AWS_S3_CLEANUP_FIXED_DELAY_MS:60000}
+  exchange:
+    upbit:
+      sync:
+        enabled: ${UPBIT_TRADE_SYNC_ENABLED:true}
+        fixed-delay-ms: ${UPBIT_TRADE_SYNC_FIXED_DELAY_MS:60000}
+        interval-hours: ${UPBIT_TRADE_SYNC_INTERVAL_HOURS:6}
+        retry-delay-minutes: ${UPBIT_TRADE_SYNC_RETRY_DELAY_MINUTES:10}
+        stale-lock-minutes: ${UPBIT_TRADE_SYNC_STALE_LOCK_MINUTES:30}
+        batch-size: ${UPBIT_TRADE_SYNC_BATCH_SIZE:50}
 
 openai:
   api-key: ${OPENAI_API_KEY:}

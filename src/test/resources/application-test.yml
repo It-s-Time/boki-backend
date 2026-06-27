@@ -26,3 +26,12 @@ boki:
     secret: boki-test-jwt-secret-key-must-be-at-least-32-bytes
     access-token-expiration-ms: 3600000
     refresh-token-expiration-ms: 1209600000
+  exchange:
+    upbit:
+      sync:
+        enabled: false
+        fixed-delay-ms: 60000
+        interval-hours: 6
+        retry-delay-minutes: 10
+        stale-lock-minutes: 30
+        batch-size: 50
