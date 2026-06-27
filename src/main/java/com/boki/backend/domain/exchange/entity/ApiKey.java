@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -38,6 +39,15 @@ public class ApiKey extends BaseEntity {
     @Column(name = "secret_key", nullable = false, length = 1000)
     private String secretKey;
 
+    @Column(name = "last_trade_synced_at")
+    private LocalDateTime lastTradeSyncedAt;
+
+    @Column(name = "next_trade_sync_at")
+    private LocalDateTime nextTradeSyncAt;
+
+    @Column(name = "trade_sync_started_at")
+    private LocalDateTime tradeSyncStartedAt;
+
     @Builder
     private ApiKey(Long memberId, String accessKey, String secretKey) {
         this.memberId = memberId;
@@ -48,5 +58,29 @@ public class ApiKey extends BaseEntity {
     public void update(String accessKey, String secretKey) {
         this.accessKey = accessKey;
         this.secretKey = secretKey;
+    }
+
+    public void markTradeSyncDue(LocalDateTime now) {
+        this.nextTradeSyncAt = now;
+        this.tradeSyncStartedAt = null;
+    }
+
+    public void scheduleNextTradeSync(LocalDateTime nextTradeSyncAt) {
+        this.nextTradeSyncAt = nextTradeSyncAt;
+    }
+
+    public void startTradeSync(LocalDateTime now) {
+        this.tradeSyncStartedAt = now;
+    }
+
+    public void completeTradeSync(LocalDateTime now, long intervalHours) {
+        this.lastTradeSyncedAt = now;
+        this.nextTradeSyncAt = now.plusHours(intervalHours);
+        this.tradeSyncStartedAt = null;
+    }
+
+    public void failTradeSync(LocalDateTime retryAt) {
+        this.nextTradeSyncAt = retryAt;
+        this.tradeSyncStartedAt = null;
     }
 }
