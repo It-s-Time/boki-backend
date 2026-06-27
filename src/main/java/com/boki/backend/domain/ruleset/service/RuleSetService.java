@@ -65,12 +65,12 @@ public class RuleSetService {
     }
 
     @Transactional
-    public RuleSetResDTO copyFromTemplate(Long userId, Long templateId, RuleSetCopyReqDTO request) {
-        RuleSet template = ruleSetRepository.findById(templateId)
+    public RuleSetResDTO copyFromTemplate(Long userId, Long ruleSetId, RuleSetCopyReqDTO request) {
+        RuleSet template = ruleSetRepository.findById(ruleSetId)
                 .filter(rs -> rs.getType() == RuleSetType.TEMPLATE)
                 .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_SET_NOT_FOUND));
 
-        if (ruleSetRepository.findByMemberIdAndTemplateId(userId, templateId).isPresent()) {
+        if (ruleSetRepository.findByMemberIdAndTemplateId(userId, ruleSetId).isPresent()) {
             throw new GeneralException(RuleSetErrorCode.RULE_SET_ALREADY_EXISTS);
         }
 
