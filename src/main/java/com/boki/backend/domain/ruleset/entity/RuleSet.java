@@ -35,7 +35,7 @@ public class RuleSet extends BaseEntity {
     @Column(name = "set_type", nullable = false)
     private RuleSetType type;
 
-    @Column(name = "member_id", nullable = false)
+    @Column(name = "member_id")
     private Long memberId;
 
     @OneToMany(mappedBy = "ruleSet", cascade = CascadeType.ALL, orphanRemoval = true)
