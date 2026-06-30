@@ -3,6 +3,7 @@ package com.boki.backend.domain.ruleset.entity;
 import com.boki.backend.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Check;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +12,8 @@ import java.util.List;
 @Table(name = "rule_sets", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"member_id", "set_name"})
 })
+@Check(constraints = "(set_type = 'TEMPLATE' AND member_id IS NULL) "
+        + "OR (set_type = 'CUSTOM' AND member_id IS NOT NULL)")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
