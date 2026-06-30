@@ -222,7 +222,12 @@ public class RuleSetService {
                 .templateId(template.getId())
                 .build();
 
-        RuleSet savedCopy = ruleSetRepository.save(customCopy);
+        RuleSet savedCopy;
+        try {
+            savedCopy = ruleSetRepository.saveAndFlush(customCopy);
+        } catch (DataIntegrityViolationException e) {
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_ALREADY_EXISTS);
+        }
 
         // 템플릿의 원칙들도 그대로 복사
         template.getRules().stream()
