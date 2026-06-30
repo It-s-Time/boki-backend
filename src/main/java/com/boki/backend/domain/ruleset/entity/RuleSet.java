@@ -10,7 +10,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "rule_sets", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"member_id", "set_name"})
+        @UniqueConstraint(columnNames = {"member_id", "set_name"}),
+        @UniqueConstraint(columnNames = {"member_id", "template_id"})
 })
 @Check(constraints = "(set_type = 'TEMPLATE' AND member_id IS NULL) "
         + "OR (set_type = 'CUSTOM' AND member_id IS NOT NULL)")

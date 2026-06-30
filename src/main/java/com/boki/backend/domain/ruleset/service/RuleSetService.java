@@ -9,6 +9,7 @@ import com.boki.backend.domain.ruleset.exception.RuleSetErrorCode;
 import com.boki.backend.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,7 +82,12 @@ public class RuleSetService {
                 .templateId(template.getId())
                 .build();
 
-        RuleSet savedCopy = ruleSetRepository.save(customCopy);
+        RuleSet savedCopy;
+        try {
+            savedCopy = ruleSetRepository.saveAndFlush(customCopy);
+        } catch (DataIntegrityViolationException e) {
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_ALREADY_EXISTS);
+        }
 
         template.getRules().stream()
                 .filter(Rule::isActive)
