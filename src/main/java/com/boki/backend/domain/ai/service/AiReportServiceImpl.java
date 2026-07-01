@@ -68,10 +68,9 @@ public class AiReportServiceImpl implements AiReportService {
             throw new GeneralException(AiReportErrorCode.AI_REPORT_ALREADY_EXISTS);
         }
 
-        AiReport report = AiReport.builder()
-                .tradeId(tradeId)
-                .memberId(memberId)
-                .build();
+        AiReport report = aiReportRepository.findByTradeId(tradeId)
+                .map(existing -> { existing.reset(); return existing; })
+                .orElseGet(() -> AiReport.builder().tradeId(tradeId).memberId(memberId).build());
         aiReportRepository.save(report);
 
         try {
