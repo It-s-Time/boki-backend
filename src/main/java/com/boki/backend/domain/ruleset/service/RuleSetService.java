@@ -78,6 +78,7 @@ public class RuleSetService {
         RuleSet customCopy = RuleSet.builder()
                 .memberId(userId)
                 .name(request.getName())
+                .description(template.getDescription())
                 .type(RuleSetType.CUSTOM)
                 .templateId(template.getId())
                 .build();
@@ -98,6 +99,7 @@ public class RuleSetService {
                         .orderIndex(templateRule.getOrderIndex())
                         .build()));
 
+        ruleSetRepository.flush();
         return RuleSetResDTO.from(savedCopy);
     }
 
@@ -218,6 +220,7 @@ public class RuleSetService {
         RuleSet customCopy = RuleSet.builder()
                 .memberId(userId)
                 .name(template.getName())
+                .description(template.getDescription())
                 .type(RuleSetType.CUSTOM)
                 .templateId(template.getId())
                 .build();
