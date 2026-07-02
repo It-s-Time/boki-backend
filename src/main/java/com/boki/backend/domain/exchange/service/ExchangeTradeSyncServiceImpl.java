@@ -106,14 +106,17 @@ public class ExchangeTradeSyncServiceImpl implements ExchangeTradeSyncService {
                 continue;
             }
 
+            BigDecimal price = resolvePrice(order);
+            BigDecimal quantity = resolveQuantity(order);
             tradesToSave.add(Trade.builder()
                     .ruleSetId(null)
                     .memberId(memberId)
                     .tradeType(toTradeType(order.side()))
                     .inputType(TradeInputType.API)
                     .coinType(order.market())
-                    .price(resolvePrice(order))
-                    .quantity(resolveQuantity(order))
+                    .price(price)
+                    .quantity(quantity)
+                    .totalAmount(calculateTotalAmount(price, quantity))
                     .tradedAt(resolveTradedAt(order))
                     .externalTradeId(order.uuid())
                     .build());
@@ -206,6 +209,10 @@ public class ExchangeTradeSyncServiceImpl implements ExchangeTradeSyncService {
             return order.volume();
         }
         throw new GeneralException(ExchangeErrorCode.API_REQUEST_FAILED);
+    }
+
+    private BigDecimal calculateTotalAmount(BigDecimal price, BigDecimal quantity) {
+        return price.multiply(quantity).setScale(5, RoundingMode.HALF_UP);
     }
 
     private LocalDateTime resolveTradedAt(UpbitClosedOrderResponse order) {

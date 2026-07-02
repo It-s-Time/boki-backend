@@ -9,6 +9,8 @@ import com.boki.backend.domain.trade.exception.TradeErrorCode;
 import com.boki.backend.domain.trade.repository.TradeRepository;
 import com.boki.backend.global.apiPayload.code.GeneralErrorCode;
 import com.boki.backend.global.apiPayload.exception.GeneralException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class TradeServiceImpl implements TradeService {
+
+    private static final int QUANTITY_SCALE = 8;
 
     private final TradeRepository tradeRepository;
 
@@ -36,6 +40,7 @@ public class TradeServiceImpl implements TradeService {
     @Override
     @Transactional
     public TradeResponse createManualTrade(Long memberId, TradeManualCreateRequest request) {
+        BigDecimal quantity = calculateQuantity(request.totalAmount(), request.price());
         Trade trade = Trade.builder()
                 .ruleSetId(request.ruleSetId())
                 .memberId(memberId)
@@ -43,7 +48,8 @@ public class TradeServiceImpl implements TradeService {
                 .inputType(TradeInputType.MANUAL)
                 .coinType(normalizeRequiredText(request.coinType()))
                 .price(request.price())
-                .quantity(request.quantity())
+                .quantity(quantity)
+                .totalAmount(request.totalAmount())
                 .tradedAt(request.tradedAt())
                 .build();
 
@@ -54,12 +60,17 @@ public class TradeServiceImpl implements TradeService {
     @Transactional
     public TradeResponse updateTrade(Long memberId, Long tradeId, TradeUpdateRequest request) {
         Trade trade = getOwnedTrade(tradeId, memberId);
+        BigDecimal price = request.price() != null ? request.price() : trade.getPrice();
+        BigDecimal totalAmount = request.totalAmount() != null ? request.totalAmount() : trade.getTotalAmount();
+        BigDecimal quantity = calculateQuantity(totalAmount, price);
+
         trade.update(
                 request.ruleSetId(),
                 request.tradeType(),
                 normalizeNullableText(request.coinType()),
-                request.price(),
-                request.quantity(),
+                price,
+                quantity,
+                totalAmount,
                 request.tradedAt()
         );
 
@@ -101,5 +112,14 @@ public class TradeServiceImpl implements TradeService {
             throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
         }
         return normalized;
+    }
+
+    private BigDecimal calculateQuantity(BigDecimal totalAmount, BigDecimal price) {
+        if (totalAmount == null || price == null
+                || totalAmount.compareTo(BigDecimal.ZERO) <= 0
+                || price.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
+        }
+        return totalAmount.divide(price, QUANTITY_SCALE, RoundingMode.HALF_UP);
     }
 }

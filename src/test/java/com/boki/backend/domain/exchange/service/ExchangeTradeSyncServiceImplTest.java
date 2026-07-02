@@ -87,6 +87,7 @@ class ExchangeTradeSyncServiceImplTest {
         assertThat(response.syncedCount()).isEqualTo(1);
         assertThat(response.skippedCount()).isZero();
         assertThat(tradeRepository.findAll()).hasSize(1);
+        assertThat(tradeRepository.findAll().get(0).getTotalAmount()).isEqualByComparingTo("4999999.21020");
         ApiKey credential = apiKeyRepository.findByMemberId(1L).orElseThrow();
         assertThat(credential.getLastTradeSyncedAt()).isEqualTo(NOW);
         assertThat(credential.getNextTradeSyncAt()).isEqualTo(NOW.plusHours(6));
