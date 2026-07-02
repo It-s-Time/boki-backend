@@ -352,7 +352,7 @@ class TradeReviewControllerTest {
     void invalidRuleScoreFailsWhenRuleDoesNotBelongToReviewRuleSet() throws Exception {
         RuleSet ruleSet = createRuleSet(1L);
         Rule buyRule = createRule(ruleSet, RuleType.BUY, "기술적 분석 지표 3개 이상 확인하기", 0, true);
-        RuleSet otherRuleSet = createRuleSet(1L);
+        RuleSet otherRuleSet = createRuleSet(1L, "나의 공격형 전략");
         Rule otherRule = createRule(otherRuleSet, RuleType.BUY, "다른 룰셋 원칙", 0, true);
         Trade trade = createTrade(1L, ruleSet.getId(), TradeType.BUY);
 
@@ -483,9 +483,13 @@ class TradeReviewControllerTest {
     }
 
     private RuleSet createRuleSet(Long memberId) {
+        return createRuleSet(memberId, "나의 안정형 전략");
+    }
+
+    private RuleSet createRuleSet(Long memberId, String name) {
         return ruleSetRepository.save(RuleSet.builder()
                 .memberId(memberId)
-                .name("나의 안정형 전략")
+                .name(name)
                 .type(RuleSetType.CUSTOM)
                 .build());
     }
@@ -509,6 +513,7 @@ class TradeReviewControllerTest {
                 .coinType("BTC")
                 .price(BigDecimal.valueOf(103_403_000))
                 .quantity(BigDecimal.valueOf(0.01))
+                .totalAmount(BigDecimal.valueOf(1_034_030))
                 .tradedAt(LocalDateTime.of(2026, 6, 6, 14, 32))
                 .build());
     }

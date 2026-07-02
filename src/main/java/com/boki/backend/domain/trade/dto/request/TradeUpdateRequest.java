@@ -23,9 +23,9 @@ public record TradeUpdateRequest(
         @Positive(message = "거래 단가는 0보다 커야 합니다.")
         BigDecimal price,
 
-        @Schema(description = "거래 수량", example = "0.02")
-        @Positive(message = "거래 수량은 0보다 커야 합니다.")
-        BigDecimal quantity,
+        @Schema(description = "거래 총금액", example = "5000000")
+        @Positive(message = "거래 총금액은 0보다 커야 합니다.")
+        BigDecimal totalAmount,
 
         @Schema(description = "거래 일시", example = "2026-05-08T10:40:00")
         LocalDateTime tradedAt
