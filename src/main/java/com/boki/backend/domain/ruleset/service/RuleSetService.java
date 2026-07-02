@@ -9,6 +9,7 @@ import com.boki.backend.domain.ruleset.exception.RuleSetErrorCode;
 import com.boki.backend.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,12 +66,12 @@ public class RuleSetService {
     }
 
     @Transactional
-    public RuleSetResDTO copyFromTemplate(Long userId, Long templateId, RuleSetCopyReqDTO request) {
-        RuleSet template = ruleSetRepository.findById(templateId)
+    public RuleSetResDTO copyFromTemplate(Long userId, Long ruleSetId, RuleSetCopyReqDTO request) {
+        RuleSet template = ruleSetRepository.findById(ruleSetId)
                 .filter(rs -> rs.getType() == RuleSetType.TEMPLATE)
                 .orElseThrow(() -> new GeneralException(RuleSetErrorCode.RULE_SET_NOT_FOUND));
 
-        if (ruleSetRepository.findByMemberIdAndTemplateId(userId, templateId).isPresent()) {
+        if (ruleSetRepository.findByMemberIdAndTemplateId(userId, ruleSetId).isPresent()) {
             throw new GeneralException(RuleSetErrorCode.RULE_SET_ALREADY_EXISTS);
         }
 
@@ -81,7 +82,12 @@ public class RuleSetService {
                 .templateId(template.getId())
                 .build();
 
-        RuleSet savedCopy = ruleSetRepository.save(customCopy);
+        RuleSet savedCopy;
+        try {
+            savedCopy = ruleSetRepository.saveAndFlush(customCopy);
+        } catch (DataIntegrityViolationException e) {
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_ALREADY_EXISTS);
+        }
 
         template.getRules().stream()
                 .filter(Rule::isActive)
@@ -216,7 +222,12 @@ public class RuleSetService {
                 .templateId(template.getId())
                 .build();
 
-        RuleSet savedCopy = ruleSetRepository.save(customCopy);
+        RuleSet savedCopy;
+        try {
+            savedCopy = ruleSetRepository.saveAndFlush(customCopy);
+        } catch (DataIntegrityViolationException e) {
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_ALREADY_EXISTS);
+        }
 
         // 템플릿의 원칙들도 그대로 복사
         template.getRules().stream()
