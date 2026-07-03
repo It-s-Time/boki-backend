@@ -1,6 +1,10 @@
 package com.boki.backend.domain.trade.service;
 
+import com.boki.backend.domain.review.entity.TradeReview;
+import com.boki.backend.domain.review.repository.TradeReviewRepository;
 import com.boki.backend.domain.trade.dto.request.TradeManualCreateRequest;
+import com.boki.backend.domain.trade.dto.request.ReviewStatus;
+import com.boki.backend.domain.trade.dto.request.TradeSearchRequest;
 import com.boki.backend.domain.trade.dto.request.TradeUpdateRequest;
 import com.boki.backend.domain.trade.dto.response.TradeCalendarDayResponse;
 import com.boki.backend.domain.trade.dto.response.TradeCalendarResponse;
@@ -17,9 +21,11 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,15 +39,25 @@ public class TradeServiceImpl implements TradeService {
     private static final int QUANTITY_SCALE = 8;
 
     private final TradeRepository tradeRepository;
+    private final TradeReviewRepository tradeReviewRepository;
 
     @Override
-    public List<TradeResponse> getTrades(Long memberId, LocalDate date) {
-        List<Trade> trades = date == null
+    public List<TradeResponse> getTrades(Long memberId, TradeSearchRequest request) {
+        List<Trade> trades = request.date() == null
                 ? tradeRepository.findAllByMemberIdOrderByTradedAtDescTradeIdDesc(memberId)
-                : findTradesInRange(memberId, date.atStartOfDay(), date.plusDays(1).atStartOfDay());
+                : findTradesInRange(memberId, request.date().atStartOfDay(), request.date().plusDays(1).atStartOfDay());
+
+        if (request.tradeType() != null) {
+            trades = trades.stream()
+                    .filter(trade -> trade.getTradeType() == request.tradeType())
+                    .toList();
+        }
+
+        Map<Long, TradeReview> reviewsByTradeId = findReviewsByTradeId(memberId, trades);
 
         return trades.stream()
-                .map(TradeResponse::from)
+                .map(trade -> toResponseWithReview(trade, reviewsByTradeId.get(trade.getTradeId())))
+                .filter(response -> matchesReviewStatus(response, request.reviewStatus()))
                 .toList();
     }
 
@@ -70,7 +86,10 @@ public class TradeServiceImpl implements TradeService {
 
     @Override
     public TradeResponse getTrade(Long memberId, Long tradeId) {
-        return TradeResponse.from(getOwnedTrade(tradeId, memberId));
+        Trade trade = getOwnedTrade(tradeId, memberId);
+        TradeReview review = tradeReviewRepository.findByTradeIdAndMemberId(tradeId, memberId)
+                .orElse(null);
+        return toResponseWithReview(trade, review);
     }
 
     @Override
@@ -110,7 +129,9 @@ public class TradeServiceImpl implements TradeService {
                 request.tradedAt()
         );
 
-        return TradeResponse.from(trade);
+        TradeReview review = tradeReviewRepository.findByTradeIdAndMemberId(tradeId, memberId)
+                .orElse(null);
+        return toResponseWithReview(trade, review);
     }
 
     @Override
@@ -137,6 +158,28 @@ public class TradeServiceImpl implements TradeService {
                 startInclusive,
                 endExclusive
         );
+    }
+
+    private Map<Long, TradeReview> findReviewsByTradeId(Long memberId, Collection<Trade> trades) {
+        List<Long> tradeIds = trades.stream()
+                .map(Trade::getTradeId)
+                .toList();
+        if (tradeIds.isEmpty()) {
+            return Map.of();
+        }
+        return tradeReviewRepository.findAllByMemberIdAndTradeIdIn(memberId, tradeIds).stream()
+                .collect(Collectors.toMap(TradeReview::getTradeId, Function.identity()));
+    }
+
+    private TradeResponse toResponseWithReview(Trade trade, TradeReview review) {
+        if (review == null) {
+            return TradeResponse.from(trade, ReviewStatus.NOT_COMPLETED, null);
+        }
+        return TradeResponse.from(trade, ReviewStatus.COMPLETED, review.getReviewId());
+    }
+
+    private boolean matchesReviewStatus(TradeResponse response, ReviewStatus reviewStatus) {
+        return reviewStatus == null || response.reviewStatus() == reviewStatus;
     }
 
     private TradeCalendarDayResponse toCalendarDayResponse(LocalDate date, List<Trade> trades) {
