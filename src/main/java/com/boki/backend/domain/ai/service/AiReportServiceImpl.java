@@ -14,6 +14,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
@@ -42,9 +44,15 @@ public class AiReportServiceImpl implements AiReportService {
         AiReport report = aiReportRepository.findByTradeId(tradeId)
                 .map(existing -> { existing.reset(); return existing; })
                 .orElseGet(() -> AiReport.builder().tradeId(tradeId).memberId(memberId).build());
-        aiReportRepository.saveAndFlush(report); // 비동기 스레드가 읽기 전에 DB에 반영
+        aiReportRepository.save(report);
 
-        aiReportAsyncService.processReport(tradeId); // 백그라운드로 OpenAI 호출
+        // 트랜잭션 커밋 완료 후 비동기 실행
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                aiReportAsyncService.processReport(tradeId);
+            }
+        });
 
         return toResDTO(report, null); // PENDING 상태 즉시 반환
     }
