@@ -2,16 +2,25 @@ package com.boki.backend.domain.trade.service;
 
 import com.boki.backend.domain.trade.dto.request.TradeManualCreateRequest;
 import com.boki.backend.domain.trade.dto.request.TradeUpdateRequest;
+import com.boki.backend.domain.trade.dto.response.TradeCalendarDayResponse;
+import com.boki.backend.domain.trade.dto.response.TradeCalendarResponse;
 import com.boki.backend.domain.trade.dto.response.TradeResponse;
 import com.boki.backend.domain.trade.entity.Trade;
 import com.boki.backend.domain.trade.entity.TradeInputType;
+import com.boki.backend.domain.trade.entity.TradeType;
 import com.boki.backend.domain.trade.exception.TradeErrorCode;
 import com.boki.backend.domain.trade.repository.TradeRepository;
 import com.boki.backend.global.apiPayload.code.GeneralErrorCode;
 import com.boki.backend.global.apiPayload.exception.GeneralException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,10 +35,37 @@ public class TradeServiceImpl implements TradeService {
     private final TradeRepository tradeRepository;
 
     @Override
-    public List<TradeResponse> getTrades(Long memberId) {
-        return tradeRepository.findAllByMemberIdOrderByTradedAtDescTradeIdDesc(memberId).stream()
+    public List<TradeResponse> getTrades(Long memberId, LocalDate date) {
+        List<Trade> trades = date == null
+                ? tradeRepository.findAllByMemberIdOrderByTradedAtDescTradeIdDesc(memberId)
+                : findTradesInRange(memberId, date.atStartOfDay(), date.plusDays(1).atStartOfDay());
+
+        return trades.stream()
                 .map(TradeResponse::from)
                 .toList();
+    }
+
+    @Override
+    public TradeCalendarResponse getTradeCalendar(Long memberId, int year, int month) {
+        YearMonth yearMonth = YearMonth.of(year, month);
+        List<Trade> trades = findTradesInRange(
+                memberId,
+                yearMonth.atDay(1).atStartOfDay(),
+                yearMonth.plusMonths(1).atDay(1).atStartOfDay()
+        );
+
+        Map<LocalDate, List<Trade>> tradesByDate = trades.stream()
+                .collect(Collectors.groupingBy(
+                        trade -> trade.getTradedAt().toLocalDate(),
+                        TreeMap::new,
+                        Collectors.toList()
+                ));
+
+        List<TradeCalendarDayResponse> days = tradesByDate.entrySet().stream()
+                .map(entry -> toCalendarDayResponse(entry.getKey(), entry.getValue()))
+                .toList();
+
+        return new TradeCalendarResponse(year, month, days);
     }
 
     @Override
@@ -93,6 +129,26 @@ public class TradeServiceImpl implements TradeService {
             throw new GeneralException(TradeErrorCode.TRADE_FORBIDDEN);
         }
         return trade;
+    }
+
+    private List<Trade> findTradesInRange(Long memberId, LocalDateTime startInclusive, LocalDateTime endExclusive) {
+        return tradeRepository.findAllByMemberIdAndTradedAtGreaterThanEqualAndTradedAtLessThanOrderByTradedAtDescTradeIdDesc(
+                memberId,
+                startInclusive,
+                endExclusive
+        );
+    }
+
+    private TradeCalendarDayResponse toCalendarDayResponse(LocalDate date, List<Trade> trades) {
+        long buyCount = countByTradeType(trades, TradeType.BUY);
+        long sellCount = countByTradeType(trades, TradeType.SELL);
+        return new TradeCalendarDayResponse(date, true, trades.size(), buyCount, sellCount);
+    }
+
+    private long countByTradeType(List<Trade> trades, TradeType tradeType) {
+        return trades.stream()
+                .filter(trade -> trade.getTradeType() == tradeType)
+                .count();
     }
 
     private String normalizeRequiredText(String value) {

@@ -10,6 +10,7 @@ public record AiReportResDTO(
         ReportStatus status,
         Grade grade,
         Double complianceRate,
+        List<String> hashtags,
         List<String> goodPoints,
         List<String> badPoints,
         RecommendedRuleResDTO recommendedRule
