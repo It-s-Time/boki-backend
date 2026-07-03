@@ -77,7 +77,7 @@ public class AiReportServiceImpl implements AiReportService {
         if (rawContent == null) {
             return new AiReportResDTO(
                     report.getAiReportId(), report.getTradeId(), report.getStatus(),
-                    report.getGrade(), report.getComplianceRate(), null, null, null
+                    report.getGrade(), report.getComplianceRate(), null, null, null, null
             );
         }
 
@@ -92,7 +92,7 @@ public class AiReportServiceImpl implements AiReportService {
             return new AiReportResDTO(
                     report.getAiReportId(), report.getTradeId(), report.getStatus(),
                     report.getGrade(), report.getComplianceRate(),
-                    content.goodPoints(), content.badPoints(), recommendedRule
+                    content.hashtags(), content.goodPoints(), content.badPoints(), recommendedRule
             );
         } catch (Exception e) {
             throw new GeneralException(AiReportErrorCode.AI_RESPONSE_PARSE_FAILED);
