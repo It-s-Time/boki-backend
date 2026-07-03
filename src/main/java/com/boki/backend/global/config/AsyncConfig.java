@@ -20,4 +20,15 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    @Bean(name = "aiReportTaskExecutor")
+    public Executor aiReportTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setThreadNamePrefix("ai-report-");
+        executor.setCorePoolSize(3);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(50);
+        executor.initialize();
+        return executor;
+    }
 }
