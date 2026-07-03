@@ -1,11 +1,13 @@
 package com.boki.backend.domain.ruleset.dto.response;
 
+import com.boki.backend.domain.ruleset.entity.Rule;
 import com.boki.backend.domain.ruleset.entity.RuleSet;
 import com.boki.backend.domain.ruleset.entity.RuleSetType;
 import com.boki.backend.domain.ruleset.entity.RuleType;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Getter
@@ -29,10 +31,12 @@ public class RuleSetResDTO {
                 .createdAt(ruleSet.getCreatedAt())
                 .buyRules(ruleSet.getRules().stream()
                         .filter(r -> r.getType() == RuleType.BUY && r.isActive())
+                        .sorted(Comparator.comparingInt(Rule::getOrderIndex))
                         .map(RuleResDTO::from)
                         .toList())
                 .sellRules(ruleSet.getRules().stream()
                         .filter(r -> r.getType() == RuleType.SELL && r.isActive())
+                        .sorted(Comparator.comparingInt(Rule::getOrderIndex))
                         .map(RuleResDTO::from)
                         .toList())
                 .build();
