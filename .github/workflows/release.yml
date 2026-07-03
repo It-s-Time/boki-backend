@@ -22,7 +22,7 @@ jobs:
           VERSION: ${{ github.event.pull_request.title }}
         run: |
           # PR 제목이 vX.Y.Z 형식일 때만 실행 (아니면 건너뜀)
-          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             echo "버전 형식 아님, 건너뜁니다: '$VERSION'"
             exit 0
           fi
