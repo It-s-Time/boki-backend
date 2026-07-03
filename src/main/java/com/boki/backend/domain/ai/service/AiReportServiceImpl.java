@@ -74,8 +74,8 @@ public class AiReportServiceImpl implements AiReportService {
         aiReportRepository.save(report);
 
         try {
-            List<Rule> rules = fetchRules(trade);
             Optional<TradeReview> reviewOpt = tradeReviewRepository.findByTradeId(tradeId);
+            List<Rule> rules = fetchRules(trade, reviewOpt);
 
             Double complianceRate = null;
             Grade grade = null;
@@ -117,11 +117,15 @@ public class AiReportServiceImpl implements AiReportService {
         return toResDTO(report, report.getContent());
     }
 
-    private List<Rule> fetchRules(Trade trade) {
-        if (trade.getRuleSetId() == null) {
+    private List<Rule> fetchRules(Trade trade, Optional<TradeReview> reviewOpt) {
+        Long ruleSetId = trade.getRuleSetId();
+        if (ruleSetId == null) {
+            ruleSetId = reviewOpt.map(TradeReview::getRuleSetId).orElse(null);
+        }
+        if (ruleSetId == null) {
             return List.of();
         }
-        return ruleRepository.findByRuleSetIdAndIsActiveTrueOrderByOrderIndexAsc(trade.getRuleSetId());
+        return ruleRepository.findByRuleSetIdAndIsActiveTrueOrderByOrderIndexAsc(ruleSetId);
     }
 
     private String buildUserPrompt(Trade trade, List<Rule> rules,
