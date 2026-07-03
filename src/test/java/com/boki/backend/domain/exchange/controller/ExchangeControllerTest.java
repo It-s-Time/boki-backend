@@ -200,6 +200,7 @@ class ExchangeControllerTest {
                 .andExpect(jsonPath("$.result.trades[0].tradeType", is("BUY")))
                 .andExpect(jsonPath("$.result.trades[0].externalSource").doesNotExist())
                 .andExpect(jsonPath("$.result.trades[0].externalTradeId", is("upbit-order-uuid")))
+                .andExpect(jsonPath("$.result.trades[0].totalAmount").value(closeTo(4999999.21020, 0.00001), Double.class))
                 .andExpect(jsonPath("$.result.trades[0].quantity").value(closeTo(0.04715290, 0.000000001), Double.class));
 
         mockMvc.perform(post("/api/exchange/sync/trades")

@@ -61,6 +61,9 @@ public class Trade {
     @Column(name = "quantity", nullable = false, precision = 20, scale = 8)
     private BigDecimal quantity;
 
+    @Column(name = "total_amount", nullable = false, precision = 20, scale = 5)
+    private BigDecimal totalAmount;
+
     @Column(name = "traded_at", nullable = false)
     private LocalDateTime tradedAt;
 
@@ -80,6 +83,7 @@ public class Trade {
             String coinType,
             BigDecimal price,
             BigDecimal quantity,
+            BigDecimal totalAmount,
             LocalDateTime tradedAt,
             String externalTradeId
     ) {
@@ -90,6 +94,7 @@ public class Trade {
         this.coinType = coinType;
         this.price = price;
         this.quantity = quantity;
+        this.totalAmount = totalAmount;
         this.tradedAt = tradedAt;
         this.externalTradeId = externalTradeId;
     }
@@ -100,6 +105,7 @@ public class Trade {
             String coinType,
             BigDecimal price,
             BigDecimal quantity,
+            BigDecimal totalAmount,
             LocalDateTime tradedAt
     ) {
         if (ruleSetId != null) {
@@ -116,6 +122,9 @@ public class Trade {
         }
         if (quantity != null) {
             this.quantity = quantity;
+        }
+        if (totalAmount != null) {
+            this.totalAmount = totalAmount;
         }
         if (tradedAt != null) {
             this.tradedAt = tradedAt;

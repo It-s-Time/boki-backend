@@ -28,10 +28,10 @@ public record TradeManualCreateRequest(
         @Positive(message = "거래 단가는 0보다 커야 합니다.")
         BigDecimal price,
 
-        @Schema(description = "거래 수량", example = "0.01")
-        @NotNull(message = "거래 수량은 필수입니다.")
-        @Positive(message = "거래 수량은 0보다 커야 합니다.")
-        BigDecimal quantity,
+        @Schema(description = "거래 총금액", example = "5000000")
+        @NotNull(message = "거래 총금액은 필수입니다.")
+        @Positive(message = "거래 총금액은 0보다 커야 합니다.")
+        BigDecimal totalAmount,
 
         @Schema(description = "거래 일시", example = "2026-05-08T10:30:00")
         @NotNull(message = "거래 일시는 필수입니다.")

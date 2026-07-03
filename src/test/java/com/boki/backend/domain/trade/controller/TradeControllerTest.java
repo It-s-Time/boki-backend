@@ -62,6 +62,8 @@ class TradeControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.tradeId", is(tradeId.intValue())))
                 .andExpect(jsonPath("$.result.price").value(closeTo(90000000.0, 0.001), Double.class))
+                .andExpect(jsonPath("$.result.totalAmount").value(closeTo(4500000.0, 0.001), Double.class))
+                .andExpect(jsonPath("$.result.quantity").value(closeTo(0.05, 0.000000001), Double.class))
                 .andExpect(jsonPath("$.result.createdAt").exists());
 
         mockMvc.perform(patch("/api/trades/{id}", tradeId)
@@ -71,15 +73,42 @@ class TradeControllerTest {
                                 {
                                   "ruleSetId": 3,
                                   "coinType": "eth",
-                                  "quantity": 0.04715290,
-                                  "price": 91000000
+                                  "price": 91000000,
+                                  "totalAmount": 4550000
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.ruleSetId", is(3)))
                 .andExpect(jsonPath("$.result.coinType", is("ETH")))
-                .andExpect(jsonPath("$.result.quantity").value(closeTo(0.04715290, 0.000000001), Double.class))
-                .andExpect(jsonPath("$.result.price").value(closeTo(91000000.0, 0.001), Double.class));
+                .andExpect(jsonPath("$.result.price").value(closeTo(91000000.0, 0.001), Double.class))
+                .andExpect(jsonPath("$.result.totalAmount").value(closeTo(4550000.0, 0.001), Double.class))
+                .andExpect(jsonPath("$.result.quantity").value(closeTo(0.05, 0.000000001), Double.class));
+
+        mockMvc.perform(patch("/api/trades/{id}", tradeId)
+                        .header("Authorization", bearer(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "price": 70000000
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.price").value(closeTo(70000000.0, 0.001), Double.class))
+                .andExpect(jsonPath("$.result.totalAmount").value(closeTo(4550000.0, 0.001), Double.class))
+                .andExpect(jsonPath("$.result.quantity").value(closeTo(0.065, 0.000000001), Double.class));
+
+        mockMvc.perform(patch("/api/trades/{id}", tradeId)
+                        .header("Authorization", bearer(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "totalAmount": 3500000
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.price").value(closeTo(70000000.0, 0.001), Double.class))
+                .andExpect(jsonPath("$.result.totalAmount").value(closeTo(3500000.0, 0.001), Double.class))
+                .andExpect(jsonPath("$.result.quantity").value(closeTo(0.05, 0.000000001), Double.class));
 
         mockMvc.perform(delete("/api/trades/{id}", tradeId)
                         .header("Authorization", bearer(1L)))
@@ -129,7 +158,7 @@ class TradeControllerTest {
                                   "coinType": "",
                                   "tradeType": "BUY",
                                   "price": 90000000,
-                                  "quantity": -1,
+                                  "totalAmount": -1,
                                   "tradedAt": "2026-05-08T10:30:00"
                                 }
                                 """))
@@ -148,7 +177,7 @@ class TradeControllerTest {
                                   "coinType": "btc",
                                   "tradeType": "BUY",
                                   "price": 90000000,
-                                  "quantity": 0.04715290,
+                                  "totalAmount": 4500000,
                                   "tradedAt": "2026-03-23T00:00:00"
                                 }
                                 """))
@@ -159,7 +188,8 @@ class TradeControllerTest {
                 .andExpect(jsonPath("$.result.memberId", is(1)))
                 .andExpect(jsonPath("$.result.inputType", is("MANUAL")))
                 .andExpect(jsonPath("$.result.coinType", is("BTC")))
-                .andExpect(jsonPath("$.result.quantity").value(closeTo(0.04715290, 0.000000001), Double.class))
+                .andExpect(jsonPath("$.result.totalAmount").value(closeTo(4500000.0, 0.001), Double.class))
+                .andExpect(jsonPath("$.result.quantity").value(closeTo(0.05, 0.000000001), Double.class))
                 .andReturn();
 
         Number id = com.jayway.jsonpath.JsonPath.read(result.getResponse().getContentAsString(), "$.result.tradeId");
