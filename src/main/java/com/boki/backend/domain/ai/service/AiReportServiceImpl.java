@@ -80,17 +80,17 @@ public class AiReportServiceImpl implements AiReportService {
             Double complianceRate = null;
             Grade grade = null;
 
-            if (reviewOpt.isPresent()) {
-                List<ReviewScore> scores = reviewScoreRepository.findAllByReviewReviewId(
-                        reviewOpt.get().getReviewId());
-                if (!scores.isEmpty()) {
-                    double total = scores.stream().mapToInt(ReviewScore::getScore).sum();
-                    complianceRate = (total / (scores.size() * 5.0)) * 100;
-                    grade = Grade.from(complianceRate);
-                }
+            List<ReviewScore> scores = reviewOpt.isPresent()
+                    ? reviewScoreRepository.findAllByReviewReviewId(reviewOpt.get().getReviewId())
+                    : List.of();
+
+            if (!scores.isEmpty()) {
+                double total = scores.stream().mapToInt(ReviewScore::getScore).sum();
+                complianceRate = (total / (scores.size() * 5.0)) * 100;
+                grade = Grade.from(complianceRate);
             }
 
-            String userPrompt = buildUserPrompt(trade, rules, reviewOpt, complianceRate);
+            String userPrompt = buildUserPrompt(trade, rules, reviewOpt, scores, complianceRate);
             String rawContent = openAiClient.requestCompletion(SYSTEM_PROMPT, userPrompt);
 
             report.complete(rawContent, complianceRate, grade);
@@ -125,7 +125,7 @@ public class AiReportServiceImpl implements AiReportService {
     }
 
     private String buildUserPrompt(Trade trade, List<Rule> rules,
-            Optional<TradeReview> reviewOpt, Double complianceRate) {
+            Optional<TradeReview> reviewOpt, List<ReviewScore> scores, Double complianceRate) {
         StringBuilder sb = new StringBuilder();
 
         sb.append("[거래 정보]\n");
@@ -154,7 +154,6 @@ public class AiReportServiceImpl implements AiReportService {
             if (complianceRate != null && !rules.isEmpty()) {
                 Map<Long, Rule> ruleMap = rules.stream()
                         .collect(Collectors.toMap(Rule::getId, r -> r));
-                List<ReviewScore> scores = reviewScoreRepository.findAllByReviewReviewId(review.getReviewId());
 
                 sb.append("[복기 점수]\n");
                 sb.append(String.format("- 전체 준수율: %.1f%%\n", complianceRate));
