@@ -1,0 +1,41 @@
+name: Release on merge to main
+
+on:
+  pull_request:
+    types: [closed]
+    branches: ["main"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create tag & release from PR title
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.event.pull_request.title }}
+        run: |
+          # PR 제목이 vX.Y.Z 형식일 때만 실행 (아니면 건너뜀)
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "버전 형식 아님, 건너뜁니다: '$VERSION'"
+            exit 0
+          fi
+
+          # 이미 같은 버전 있으면 중복 생성 안 함
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "이미 존재하는 릴리즈: $VERSION"
+            exit 0
+          fi
+
+          # 태그 + What's Changed 자동 생성
+          gh release create "$VERSION" \
+            --target main \
+            --title "$VERSION" \
+            --generate-notes
+          echo "릴리즈 생성 완료: $VERSION"

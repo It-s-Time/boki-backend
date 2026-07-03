@@ -1,8 +1,13 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/boki_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
-    username: ${SPRING_DATASOURCE_USERNAME:boki}
-    password: ${SPRING_DATASOURCE_PASSWORD:boki}
+    # 기존 설정 (docker mysql: 3307)
+    # url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/boki_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    # username: ${SPRING_DATASOURCE_USERNAME:boki}
+    # password: ${SPRING_DATASOURCE_PASSWORD:boki}
+    # 로컬 mysql 설정 (localhost:3306)
+    url: jdbc:mysql://localhost:3306/boki_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: boki
+    password: boki
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -12,6 +17,14 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
     open-in-view: false
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+
+server:
+  # address: 127.0.0.1  # Windows 환경에서 Bad address: listen 오류 발생으로 주석 처리
+  port: 8080
 
 logging:
   level:
