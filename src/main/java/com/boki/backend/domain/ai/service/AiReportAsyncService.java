@@ -52,7 +52,11 @@ public class AiReportAsyncService {
     @Async("aiReportTaskExecutor")
     @Transactional
     public void processReport(Long tradeId) {
-        AiReport report = aiReportRepository.findByTradeId(tradeId).orElseThrow();
+        AiReport report = aiReportRepository.findByTradeId(tradeId).orElse(null);
+        if (report == null) {
+            log.error("AI 리포트를 찾을 수 없습니다 tradeId={}", tradeId);
+            return;
+        }
         try {
             Trade trade = tradeRepository.findById(tradeId).orElseThrow();
             Optional<TradeReview> reviewOpt = tradeReviewRepository.findByTradeId(tradeId);
