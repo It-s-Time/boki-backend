@@ -141,6 +141,57 @@ class TradeControllerTest {
     }
 
     @Test
+    void getTradeCalendarReturnsOnlyOwnedTradeDaysWithCountsInAscendingDateOrder() throws Exception {
+        createManualTrade(1L, "BUY", "2026-07-03T09:00:00");
+        createManualTrade(1L, "SELL", "2026-07-03T15:00:00");
+        createManualTrade(1L, "BUY", "2026-07-10T11:00:00");
+        createManualTrade(1L, "BUY", "2026-08-01T00:00:00");
+        createManualTrade(2L, "SELL", "2026-07-20T13:00:00");
+
+        mockMvc.perform(get("/api/trades/calendar")
+                        .param("year", "2026")
+                        .param("month", "7")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess", is(true)))
+                .andExpect(jsonPath("$.result.year", is(2026)))
+                .andExpect(jsonPath("$.result.month", is(7)))
+                .andExpect(jsonPath("$.result.days", hasSize(2)))
+                .andExpect(jsonPath("$.result.days[0].date", is("2026-07-03")))
+                .andExpect(jsonPath("$.result.days[0].hasTrade", is(true)))
+                .andExpect(jsonPath("$.result.days[0].tradeCount", is(2)))
+                .andExpect(jsonPath("$.result.days[0].buyCount", is(1)))
+                .andExpect(jsonPath("$.result.days[0].sellCount", is(1)))
+                .andExpect(jsonPath("$.result.days[1].date", is("2026-07-10")))
+                .andExpect(jsonPath("$.result.days[1].hasTrade", is(true)))
+                .andExpect(jsonPath("$.result.days[1].tradeCount", is(1)))
+                .andExpect(jsonPath("$.result.days[1].buyCount", is(1)))
+                .andExpect(jsonPath("$.result.days[1].sellCount", is(0)));
+    }
+
+    @Test
+    void getTradesWithDateReturnsOnlyOwnedTradesForThatDateInExistingOrder() throws Exception {
+        createManualTrade(1L, "BUY", "2026-07-02T23:59:59");
+        Long morningTradeId = createManualTrade(1L, "BUY", "2026-07-03T09:00:00");
+        Long afternoonTradeId = createManualTrade(1L, "SELL", "2026-07-03T15:00:00");
+        createManualTrade(1L, "BUY", "2026-07-04T00:00:00");
+        createManualTrade(2L, "SELL", "2026-07-03T18:00:00");
+
+        mockMvc.perform(get("/api/trades")
+                        .param("date", "2026-07-03")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess", is(true)))
+                .andExpect(jsonPath("$.result", hasSize(2)))
+                .andExpect(jsonPath("$.result[0].tradeId", is(afternoonTradeId.intValue())))
+                .andExpect(jsonPath("$.result[0].tradedAt", is("2026-07-03T15:00:00")))
+                .andExpect(jsonPath("$.result[0].tradeType", is("SELL")))
+                .andExpect(jsonPath("$.result[1].tradeId", is(morningTradeId.intValue())))
+                .andExpect(jsonPath("$.result[1].tradedAt", is("2026-07-03T09:00:00")))
+                .andExpect(jsonPath("$.result[1].tradeType", is("BUY")));
+    }
+
+    @Test
     void xUserIdHeaderDoesNotAuthenticateRequest() throws Exception {
         mockMvc.perform(get("/api/trades")
                         .header("X-User-Id", "1"))
@@ -168,24 +219,28 @@ class TradeControllerTest {
     }
 
     private Long createManualTrade() throws Exception {
+        return createManualTrade(1L, "BUY", "2026-03-23T00:00:00");
+    }
+
+    private Long createManualTrade(Long memberId, String tradeType, String tradedAt) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/trades/manual")
-                        .header("Authorization", bearer(1L))
+                        .header("Authorization", bearer(memberId))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+                        .content(String.format("""
                                 {
                                   "ruleSetId": null,
                                   "coinType": "btc",
-                                  "tradeType": "BUY",
+                                  "tradeType": "%s",
                                   "price": 90000000,
                                   "totalAmount": 4500000,
-                                  "tradedAt": "2026-03-23T00:00:00"
+                                  "tradedAt": "%s"
                                 }
-                                """))
+                                """, tradeType, tradedAt)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.isSuccess", is(true)))
                 .andExpect(jsonPath("$.code", is("COMMON201")))
                 .andExpect(jsonPath("$.result.ruleSetId", nullValue()))
-                .andExpect(jsonPath("$.result.memberId", is(1)))
+                .andExpect(jsonPath("$.result.memberId", is(memberId.intValue())))
                 .andExpect(jsonPath("$.result.inputType", is("MANUAL")))
                 .andExpect(jsonPath("$.result.coinType", is("BTC")))
                 .andExpect(jsonPath("$.result.totalAmount").value(closeTo(4500000.0, 0.001), Double.class))

@@ -78,6 +78,7 @@ public class RuleSetService {
         RuleSet customCopy = RuleSet.builder()
                 .memberId(userId)
                 .name(request.getName())
+                .description(template.getDescription())
                 .type(RuleSetType.CUSTOM)
                 .templateId(template.getId())
                 .build();
@@ -98,13 +99,14 @@ public class RuleSetService {
                         .orderIndex(templateRule.getOrderIndex())
                         .build()));
 
+        ruleSetRepository.flush();
         return RuleSetResDTO.from(savedCopy);
     }
 
     @Transactional
     public RuleSetResDTO createRuleSetWithRules(Long userId, RuleSetWithRulesCreateReqDTO request) {
         if (ruleSetRepository.existsByMemberIdAndName(userId, request.getName())) {
-            throw new GeneralException(RuleSetErrorCode.RULE_SET_ALREADY_EXISTS);
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_NAME_ALREADY_EXISTS);
         }
 
         RuleSet ruleSet = RuleSet.builder()
@@ -113,7 +115,12 @@ public class RuleSetService {
                 .type(RuleSetType.CUSTOM)
                 .build();
 
-        RuleSet savedRuleSet = ruleSetRepository.save(ruleSet);
+        RuleSet savedRuleSet;
+        try {
+            savedRuleSet = ruleSetRepository.saveAndFlush(ruleSet);
+        } catch (DataIntegrityViolationException e) {
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_NAME_ALREADY_EXISTS);
+        }
 
         if (request.getBuyRules() != null) {
             for (int i = 0; i < request.getBuyRules().size(); i++) {
@@ -218,6 +225,7 @@ public class RuleSetService {
         RuleSet customCopy = RuleSet.builder()
                 .memberId(userId)
                 .name(template.getName())
+                .description(template.getDescription())
                 .type(RuleSetType.CUSTOM)
                 .templateId(template.getId())
                 .build();

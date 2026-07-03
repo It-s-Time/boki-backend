@@ -2,6 +2,7 @@ package com.boki.backend.domain.trade.controller;
 
 import com.boki.backend.domain.trade.dto.request.TradeManualCreateRequest;
 import com.boki.backend.domain.trade.dto.request.TradeUpdateRequest;
+import com.boki.backend.domain.trade.dto.response.TradeCalendarResponse;
 import com.boki.backend.domain.trade.dto.response.TradeResponse;
 import com.boki.backend.domain.trade.service.TradeService;
 import com.boki.backend.global.apiPayload.ApiResponse;
@@ -9,7 +10,10 @@ import com.boki.backend.global.apiPayload.code.GeneralSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +26,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Trade", description = "거래 입력 API")
@@ -36,11 +41,25 @@ public class TradeController {
     @Operation(summary = "거래 목록 조회", description = "인증 사용자 기준 거래 목록을 최신 거래일 순으로 조회합니다.")
     @GetMapping
     public ResponseEntity<ApiResponse<List<TradeResponse>>> getTrades(
-            @AuthenticationPrincipal Long memberId
+            @AuthenticationPrincipal Long memberId,
+            @RequestParam(required = false) LocalDate date
     ) {
         return ResponseEntity
                 .status(GeneralSuccessCode.OK.getStatus())
-                .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, tradeService.getTrades(memberId)));
+                .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, tradeService.getTrades(memberId, date)));
+    }
+
+    @Operation(summary = "월별 거래 캘린더 요약 조회", description = "인증 사용자 기준 월별 거래 날짜 요약을 조회합니다.")
+    @GetMapping("/calendar")
+    public ResponseEntity<ApiResponse<TradeCalendarResponse>> getTradeCalendar(
+            @AuthenticationPrincipal Long memberId,
+            @RequestParam @Positive(message = "연도는 0보다 커야 합니다.") int year,
+            @RequestParam @Min(value = 1, message = "월은 1 이상이어야 합니다.")
+            @Max(value = 12, message = "월은 12 이하여야 합니다.") int month
+    ) {
+        return ResponseEntity
+                .status(GeneralSuccessCode.OK.getStatus())
+                .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, tradeService.getTradeCalendar(memberId, year, month)));
     }
 
     @Operation(summary = "수동 거래 입력", description = "인증 사용자 기준 수동 거래 데이터를 생성합니다.")
