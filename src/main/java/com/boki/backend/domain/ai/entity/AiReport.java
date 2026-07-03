@@ -62,4 +62,11 @@ public class AiReport extends BaseEntity {
     public void fail() {
         this.status = ReportStatus.FAILED;
     }
+
+    public void reset() {
+        this.status = ReportStatus.PENDING;
+        this.content = null;
+        this.complianceRate = null;
+        this.grade = null;
+    }
 }
