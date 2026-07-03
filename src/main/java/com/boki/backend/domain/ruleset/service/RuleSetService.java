@@ -115,7 +115,12 @@ public class RuleSetService {
                 .type(RuleSetType.CUSTOM)
                 .build();
 
-        RuleSet savedRuleSet = ruleSetRepository.save(ruleSet);
+        RuleSet savedRuleSet;
+        try {
+            savedRuleSet = ruleSetRepository.saveAndFlush(ruleSet);
+        } catch (DataIntegrityViolationException e) {
+            throw new GeneralException(RuleSetErrorCode.RULE_SET_NAME_ALREADY_EXISTS);
+        }
 
         if (request.getBuyRules() != null) {
             for (int i = 0; i < request.getBuyRules().size(); i++) {
