@@ -1,9 +1,12 @@
 package com.boki.backend.domain.trade.controller;
 
+import com.boki.backend.domain.trade.dto.request.ReviewStatus;
 import com.boki.backend.domain.trade.dto.request.TradeManualCreateRequest;
+import com.boki.backend.domain.trade.dto.request.TradeSearchRequest;
 import com.boki.backend.domain.trade.dto.request.TradeUpdateRequest;
 import com.boki.backend.domain.trade.dto.response.TradeCalendarResponse;
 import com.boki.backend.domain.trade.dto.response.TradeResponse;
+import com.boki.backend.domain.trade.entity.TradeType;
 import com.boki.backend.domain.trade.service.TradeService;
 import com.boki.backend.global.apiPayload.ApiResponse;
 import com.boki.backend.global.apiPayload.code.GeneralSuccessCode;
@@ -42,11 +45,16 @@ public class TradeController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<TradeResponse>>> getTrades(
             @AuthenticationPrincipal Long memberId,
-            @RequestParam(required = false) LocalDate date
+            @RequestParam(required = false) LocalDate date,
+            @RequestParam(required = false) TradeType tradeType,
+            @RequestParam(required = false) ReviewStatus reviewStatus
     ) {
         return ResponseEntity
                 .status(GeneralSuccessCode.OK.getStatus())
-                .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, tradeService.getTrades(memberId, date)));
+                .body(ApiResponse.onSuccess(
+                        GeneralSuccessCode.OK,
+                        tradeService.getTrades(memberId, new TradeSearchRequest(date, tradeType, reviewStatus))
+                ));
     }
 
     @Operation(summary = "월별 거래 캘린더 요약 조회", description = "인증 사용자 기준 월별 거래 날짜 요약을 조회합니다.")
