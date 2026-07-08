@@ -15,7 +15,7 @@ public interface ReviewScoreRepository extends JpaRepository<ReviewScore, Long> 
     @Query("SELECT r.content, r.type, AVG(rs.score) FROM ReviewScore rs " +
            "JOIN TradeReview tr ON rs.review.reviewId = tr.reviewId " +
            "JOIN Rule r ON rs.ruleId = r.id " +
-           "WHERE tr.memberId = :memberId " +
+           "WHERE tr.memberId = :memberId AND r.isActive = true " +
            "GROUP BY r.content, r.type " +
            "ORDER BY AVG(rs.score) ASC " +
            "LIMIT 3")
