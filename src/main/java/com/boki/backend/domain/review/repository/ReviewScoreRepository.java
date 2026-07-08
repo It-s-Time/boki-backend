@@ -12,10 +12,11 @@ public interface ReviewScoreRepository extends JpaRepository<ReviewScore, Long> 
 
     void deleteAllByReviewReviewId(Long reviewId);
 
-    @Query("SELECT rs.ruleId, AVG(rs.score) FROM ReviewScore rs " +
+    @Query("SELECT r.content, r.type, AVG(rs.score) FROM ReviewScore rs " +
            "JOIN TradeReview tr ON rs.review.reviewId = tr.reviewId " +
+           "JOIN Rule r ON rs.ruleId = r.id " +
            "WHERE tr.memberId = :memberId " +
-           "GROUP BY rs.ruleId " +
+           "GROUP BY r.content, r.type " +
            "ORDER BY AVG(rs.score) ASC " +
            "LIMIT 3")
     List<Object[]> findWorstRulesByMemberId(@Param("memberId") Long memberId);

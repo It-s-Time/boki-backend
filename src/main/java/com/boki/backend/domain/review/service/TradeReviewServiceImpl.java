@@ -152,18 +152,13 @@ public class TradeReviewServiceImpl implements TradeReviewService {
 
         if (results.isEmpty()) return List.of();
 
-        List<Long> ruleIds = results.stream().map(r -> (Long) r[0]).toList();
-        Map<Long, Rule> ruleMap = ruleRepository.findAllById(ruleIds).stream()
-                .collect(Collectors.toMap(Rule::getId, r -> r));
-
         return results.stream().map(r -> {
-            Long ruleId = (Long) r[0];
-            double avgScore = ((Number) r[1]).doubleValue();
-            Rule rule = ruleMap.get(ruleId);
+            String content = (String) r[0];
+            RuleType ruleType = (RuleType) r[1];
+            double avgScore = ((Number) r[2]).doubleValue();
             return new WorstRuleResponse(
-                    ruleId,
-                    rule != null ? rule.getContent() : null,
-                    rule != null ? rule.getType() : null,
+                    content,
+                    ruleType,
                     (avgScore / 5.0) * 100
             );
         }).toList();
