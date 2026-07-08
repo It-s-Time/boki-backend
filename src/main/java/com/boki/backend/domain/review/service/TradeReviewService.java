@@ -2,6 +2,7 @@ package com.boki.backend.domain.review.service;
 
 import com.boki.backend.domain.review.dto.request.ReviewSaveRequest;
 import com.boki.backend.domain.review.dto.response.ReviewResponse;
+import com.boki.backend.domain.review.dto.response.WorstRuleResponse;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,4 +15,6 @@ public interface TradeReviewService {
     ReviewResponse updateReview(Long memberId, Long reviewId, ReviewSaveRequest request, List<MultipartFile> images);
 
     void deleteReview(Long memberId, Long tradeId);
+
+    List<WorstRuleResponse> getWorstRules(Long memberId);
 }

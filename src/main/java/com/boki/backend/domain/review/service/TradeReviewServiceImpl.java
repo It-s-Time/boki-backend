@@ -4,6 +4,7 @@ import com.boki.backend.domain.review.dto.request.ReviewSaveRequest;
 import com.boki.backend.domain.review.dto.request.ReviewScoreRequest;
 import com.boki.backend.domain.review.dto.response.ReviewResponse;
 import com.boki.backend.domain.review.dto.response.ReviewScoreResponse;
+import com.boki.backend.domain.review.dto.response.WorstRuleResponse;
 import com.boki.backend.domain.review.entity.ReviewImage;
 import com.boki.backend.domain.review.entity.ReviewScore;
 import com.boki.backend.domain.review.entity.TradeReview;
@@ -144,6 +145,29 @@ public class TradeReviewServiceImpl implements TradeReviewService {
 
 
 
+
+    @Override
+    public List<WorstRuleResponse> getWorstRules(Long memberId) {
+        List<Object[]> results = reviewScoreRepository.findWorstRulesByMemberId(memberId);
+
+        if (results.isEmpty()) return List.of();
+
+        List<Long> ruleIds = results.stream().map(r -> (Long) r[0]).toList();
+        Map<Long, Rule> ruleMap = ruleRepository.findAllById(ruleIds).stream()
+                .collect(Collectors.toMap(Rule::getId, r -> r));
+
+        return results.stream().map(r -> {
+            Long ruleId = (Long) r[0];
+            double avgScore = ((Number) r[1]).doubleValue();
+            Rule rule = ruleMap.get(ruleId);
+            return new WorstRuleResponse(
+                    ruleId,
+                    rule != null ? rule.getContent() : null,
+                    rule != null ? rule.getType() : null,
+                    (avgScore / 5.0) * 100
+            );
+        }).toList();
+    }
 
     //------private method
 

@@ -3,6 +3,7 @@ package com.boki.backend.domain.review.controller;
 import com.boki.backend.domain.review.dto.request.ReviewSaveRequest;
 import com.boki.backend.domain.review.dto.request.ReviewMultipartRequest;
 import com.boki.backend.domain.review.dto.response.ReviewResponse;
+import com.boki.backend.domain.review.dto.response.WorstRuleResponse;
 import com.boki.backend.domain.review.service.TradeReviewService;
 import com.boki.backend.global.apiPayload.ApiResponse;
 import com.boki.backend.global.apiPayload.code.GeneralErrorCode;
@@ -139,6 +140,19 @@ public class TradeReviewController {
                 .body(ApiResponse.onSuccess(GeneralSuccessCode.DELETED, null));
     }
 
+
+    @Operation(summary = "못 지킨 원칙 Top 3 조회", description = "준수율이 가장 낮은 원칙 3개를 반환합니다.")
+    @GetMapping("/reviews/worst-rules")
+    public ResponseEntity<ApiResponse<List<WorstRuleResponse>>> getWorstRules(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        return ResponseEntity
+                .status(GeneralSuccessCode.OK.getStatus())
+                .body(ApiResponse.onSuccess(
+                        GeneralSuccessCode.OK,
+                        tradeReviewService.getWorstRules(memberId)
+                ));
+    }
 
     // ----------- private method
 
