@@ -4,6 +4,7 @@ import com.boki.backend.domain.review.dto.request.ReviewSaveRequest;
 import com.boki.backend.domain.review.dto.request.ReviewScoreRequest;
 import com.boki.backend.domain.review.dto.response.ReviewResponse;
 import com.boki.backend.domain.review.dto.response.ReviewScoreResponse;
+import com.boki.backend.domain.review.dto.response.WorstRuleResponse;
 import com.boki.backend.domain.review.entity.ReviewImage;
 import com.boki.backend.domain.review.entity.ReviewScore;
 import com.boki.backend.domain.review.entity.TradeReview;
@@ -144,6 +145,24 @@ public class TradeReviewServiceImpl implements TradeReviewService {
 
 
 
+
+    @Override
+    public List<WorstRuleResponse> getWorstRules(Long memberId) {
+        List<Object[]> results = reviewScoreRepository.findWorstRulesByMemberId(memberId);
+
+        if (results.isEmpty()) return List.of();
+
+        return results.stream().map(r -> {
+            String content = (String) r[0];
+            RuleType ruleType = (RuleType) r[1];
+            double avgScore = ((Number) r[2]).doubleValue();
+            return new WorstRuleResponse(
+                    content,
+                    ruleType,
+                    (avgScore / 5.0) * 100
+            );
+        }).toList();
+    }
 
     //------private method
 
