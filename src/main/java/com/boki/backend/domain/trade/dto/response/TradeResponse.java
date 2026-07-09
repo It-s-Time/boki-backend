@@ -1,5 +1,6 @@
 package com.boki.backend.domain.trade.dto.response;
 
+import com.boki.backend.domain.trade.dto.request.ReviewStatus;
 import com.boki.backend.domain.trade.entity.Trade;
 import com.boki.backend.domain.trade.entity.TradeInputType;
 import com.boki.backend.domain.trade.entity.TradeType;
@@ -20,10 +21,16 @@ public record TradeResponse(
         TradeInputType inputType,
         LocalDateTime tradedAt,
         String externalTradeId,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        ReviewStatus reviewStatus,
+        Long reviewId
 ) {
 
     public static TradeResponse from(Trade trade) {
+        return from(trade, ReviewStatus.NOT_COMPLETED, null);
+    }
+
+    public static TradeResponse from(Trade trade, ReviewStatus reviewStatus, Long reviewId) {
         return new TradeResponse(
                 trade.getTradeId(),
                 trade.getRuleSetId(),
@@ -36,7 +43,9 @@ public record TradeResponse(
                 trade.getInputType(),
                 trade.getTradedAt(),
                 trade.getExternalTradeId(),
-                trade.getCreatedAt()
+                trade.getCreatedAt(),
+                reviewStatus,
+                reviewId
         );
     }
 }

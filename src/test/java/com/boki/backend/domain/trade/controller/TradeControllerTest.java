@@ -12,6 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.boki.backend.domain.auth.jwt.JwtTokenProvider;
+import com.boki.backend.domain.review.entity.TradeReview;
+import com.boki.backend.domain.review.repository.TradeReviewRepository;
 import com.boki.backend.domain.trade.repository.TradeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,10 +37,14 @@ class TradeControllerTest {
     private TradeRepository tradeRepository;
 
     @Autowired
+    private TradeReviewRepository tradeReviewRepository;
+
+    @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
     @BeforeEach
     void setUp() {
+        tradeReviewRepository.deleteAll();
         tradeRepository.deleteAll();
     }
 
@@ -192,6 +198,94 @@ class TradeControllerTest {
     }
 
     @Test
+    void getTradesReturnsReviewStatusAndFiltersByReviewStatus() throws Exception {
+        Long reviewedTradeId = createManualTrade(1L, "BUY", "2026-07-30T14:34:00");
+        Long unreviewedTradeId = createManualTrade(1L, "SELL", "2026-07-30T14:33:00");
+        Long otherMemberTradeId = createManualTrade(2L, "BUY", "2026-07-30T14:35:00");
+        Long reviewId = createReviewRecord(1L, reviewedTradeId);
+        createReviewRecord(2L, otherMemberTradeId);
+
+        mockMvc.perform(get("/api/trades")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result", hasSize(2)))
+                .andExpect(jsonPath("$.result[0].tradeId", is(reviewedTradeId.intValue())))
+                .andExpect(jsonPath("$.result[0].reviewStatus", is("COMPLETED")))
+                .andExpect(jsonPath("$.result[0].reviewId", is(reviewId.intValue())))
+                .andExpect(jsonPath("$.result[1].tradeId", is(unreviewedTradeId.intValue())))
+                .andExpect(jsonPath("$.result[1].reviewStatus", is("NOT_COMPLETED")))
+                .andExpect(jsonPath("$.result[1].reviewId", nullValue()));
+
+        mockMvc.perform(get("/api/trades")
+                        .param("reviewStatus", "COMPLETED")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result", hasSize(1)))
+                .andExpect(jsonPath("$.result[0].tradeId", is(reviewedTradeId.intValue())))
+                .andExpect(jsonPath("$.result[0].reviewStatus", is("COMPLETED")));
+
+        mockMvc.perform(get("/api/trades")
+                        .param("reviewStatus", "NOT_COMPLETED")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result", hasSize(1)))
+                .andExpect(jsonPath("$.result[0].tradeId", is(unreviewedTradeId.intValue())))
+                .andExpect(jsonPath("$.result[0].reviewStatus", is("NOT_COMPLETED")));
+    }
+
+    @Test
+    void getTradesCombinesDateTradeTypeAndReviewStatusFilters() throws Exception {
+        Long targetTradeId = createManualTrade(1L, "BUY", "2026-07-30T14:34:00");
+        Long sellTradeId = createManualTrade(1L, "SELL", "2026-07-30T14:33:00");
+        Long unreviewedBuyTradeId = createManualTrade(1L, "BUY", "2026-07-30T14:32:00");
+        Long otherDateTradeId = createManualTrade(1L, "BUY", "2026-07-29T14:34:00");
+        createReviewRecord(1L, targetTradeId);
+        createReviewRecord(1L, sellTradeId);
+        createReviewRecord(1L, otherDateTradeId);
+
+        mockMvc.perform(get("/api/trades")
+                        .param("date", "2026-07-30")
+                        .param("tradeType", "BUY")
+                        .param("reviewStatus", "COMPLETED")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result", hasSize(1)))
+                .andExpect(jsonPath("$.result[0].tradeId", is(targetTradeId.intValue())))
+                .andExpect(jsonPath("$.result[0].tradeType", is("BUY")))
+                .andExpect(jsonPath("$.result[0].reviewStatus", is("COMPLETED")));
+
+        mockMvc.perform(get("/api/trades")
+                        .param("date", "2026-07-30")
+                        .param("tradeType", "BUY")
+                        .param("reviewStatus", "NOT_COMPLETED")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result", hasSize(1)))
+                .andExpect(jsonPath("$.result[0].tradeId", is(unreviewedBuyTradeId.intValue())));
+    }
+
+    @Test
+    void invalidTradeListFilterReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/trades")
+                        .param("tradeType", "HOLD")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("COMMON400")));
+
+        mockMvc.perform(get("/api/trades")
+                        .param("reviewStatus", "DONE")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("COMMON400")));
+
+        mockMvc.perform(get("/api/trades")
+                        .param("date", "2026/07/30")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("COMMON400")));
+    }
+
+    @Test
     void xUserIdHeaderDoesNotAuthenticateRequest() throws Exception {
         mockMvc.perform(get("/api/trades")
                         .header("X-User-Id", "1"))
@@ -249,6 +343,16 @@ class TradeControllerTest {
 
         Number id = com.jayway.jsonpath.JsonPath.read(result.getResponse().getContentAsString(), "$.result.tradeId");
         return id.longValue();
+    }
+
+    private Long createReviewRecord(Long memberId, Long tradeId) {
+        TradeReview review = tradeReviewRepository.save(TradeReview.builder()
+                .tradeId(tradeId)
+                .memberId(memberId)
+                .ruleSetId(1L)
+                .content("복기 완료")
+                .build());
+        return review.getReviewId();
     }
 
     private String bearer(Long memberId) {
