@@ -4,6 +4,7 @@ import com.boki.backend.domain.exchange.client.UpbitClient;
 import com.boki.backend.domain.exchange.config.UpbitTradeSyncProperties;
 import com.boki.backend.domain.exchange.dto.request.ApiKeySaveRequest;
 import com.boki.backend.domain.exchange.dto.response.ApiKeySaveResponse;
+import com.boki.backend.domain.exchange.dto.response.ApiKeyStatusResponse;
 import com.boki.backend.domain.exchange.entity.ApiKey;
 import com.boki.backend.domain.exchange.repository.ApiKeyRepository;
 import com.boki.backend.domain.exchange.util.SecretKeyEncryptor;
@@ -47,6 +48,11 @@ public class ExchangeApiKeyServiceImpl implements ExchangeApiKeyService {
         startInitialTradeSyncAfterCommit(apiKey.getMemberApiKeyId());
 
         return new ApiKeySaveResponse(apiKey.getMemberId(), true);
+    }
+
+    @Override
+    public ApiKeyStatusResponse getApiKeyStatus(Long memberId) {
+        return new ApiKeyStatusResponse(apiKeyRepository.existsByMemberId(memberId));
     }
 
     private void startInitialTradeSyncAfterCommit(Long memberApiKeyId) {
