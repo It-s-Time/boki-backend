@@ -56,9 +56,10 @@ public class AiReportAsyncService {
     @Async("aiReportTaskExecutor")
     @Transactional
     public void processReport(Long tradeId) {
+        log.info("[AI] 리포트 생성 시작 tradeId={}", tradeId);
         AiReport report = aiReportRepository.findByTradeId(tradeId).orElse(null);
         if (report == null) {
-            log.error("AI 리포트를 찾을 수 없습니다 tradeId={}", tradeId);
+            log.error("[AI] 리포트를 찾을 수 없습니다 tradeId={}", tradeId);
             return;
         }
         try {
@@ -79,12 +80,15 @@ public class AiReportAsyncService {
                 grade = Grade.from(complianceRate);
             }
 
+            log.info("[AI] OpenAI 호출 시작 tradeId={}, complianceRate={}", tradeId, complianceRate);
             String userPrompt = buildUserPrompt(trade, rules, reviewOpt, scores, complianceRate);
             String rawContent = openAiClient.requestCompletion(SYSTEM_PROMPT, userPrompt);
+            log.info("[AI] OpenAI 응답 완료 tradeId={}", tradeId);
 
             report.complete(rawContent, complianceRate, grade);
+            log.info("[AI] 리포트 저장 완료 tradeId={}, grade={}", tradeId, grade);
         } catch (Exception e) {
-            log.error("AI 리포트 처리 실패 tradeId={}", tradeId, e);
+            log.error("[AI] 리포트 처리 실패 tradeId={}", tradeId, e);
             report.fail();
         }
     }
