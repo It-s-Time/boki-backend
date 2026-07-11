@@ -77,14 +77,13 @@ class TradeControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ruleSetId": 3,
                                   "coinType": "eth",
                                   "price": 91000000,
                                   "totalAmount": 4550000
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.ruleSetId", is(3)))
+                .andExpect(jsonPath("$.result.ruleSetId", nullValue()))
                 .andExpect(jsonPath("$.result.coinType", is("ETH")))
                 .andExpect(jsonPath("$.result.price").value(closeTo(91000000.0, 0.001), Double.class))
                 .andExpect(jsonPath("$.result.totalAmount").value(closeTo(4550000.0, 0.001), Double.class))
@@ -322,7 +321,6 @@ class TradeControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(String.format("""
                                 {
-                                  "ruleSetId": null,
                                   "coinType": "btc",
                                   "tradeType": "%s",
                                   "price": 90000000,
