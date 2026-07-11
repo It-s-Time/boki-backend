@@ -97,7 +97,6 @@ public class TradeServiceImpl implements TradeService {
     public TradeResponse createManualTrade(Long memberId, TradeManualCreateRequest request) {
         BigDecimal quantity = calculateQuantity(request.totalAmount(), request.price());
         Trade trade = Trade.builder()
-                .ruleSetId(request.ruleSetId())
                 .memberId(memberId)
                 .tradeType(request.tradeType())
                 .inputType(TradeInputType.MANUAL)
@@ -120,7 +119,6 @@ public class TradeServiceImpl implements TradeService {
         BigDecimal quantity = calculateQuantity(totalAmount, price);
 
         trade.update(
-                request.ruleSetId(),
                 request.tradeType(),
                 normalizeNullableText(request.coinType()),
                 price,
