@@ -9,9 +9,6 @@ import java.time.LocalDateTime;
 
 @Schema(description = "거래 수정 요청")
 public record TradeUpdateRequest(
-        @Schema(description = "룰셋 ID", example = "1")
-        Long ruleSetId,
-
         @Schema(description = "코인 종류", example = "BTC")
         @Size(max = 50, message = "코인 종류는 50자 이하여야 합니다.")
         String coinType,

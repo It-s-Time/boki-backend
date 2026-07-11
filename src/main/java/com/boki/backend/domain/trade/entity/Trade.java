@@ -100,7 +100,6 @@ public class Trade {
     }
 
     public void update(
-            Long ruleSetId,
             TradeType tradeType,
             String coinType,
             BigDecimal price,
@@ -108,9 +107,6 @@ public class Trade {
             BigDecimal totalAmount,
             LocalDateTime tradedAt
     ) {
-        if (ruleSetId != null) {
-            this.ruleSetId = ruleSetId;
-        }
         if (tradeType != null) {
             this.tradeType = tradeType;
         }
