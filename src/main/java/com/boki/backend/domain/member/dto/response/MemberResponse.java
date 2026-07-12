@@ -8,9 +8,10 @@ public record MemberResponse(
         String profileImageUrl
 ) {
     public static MemberResponse from(Member member) {
+        String nickname = member.getNickname() != null ? member.getNickname() : "김보키";
         return new MemberResponse(
                 member.getMemberId(),
-                member.getNickname(),
+                nickname,
                 member.getProfileImageUrl()
         );
     }
