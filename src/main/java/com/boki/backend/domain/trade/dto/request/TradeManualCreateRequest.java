@@ -11,9 +11,6 @@ import java.time.LocalDateTime;
 
 @Schema(description = "수동 거래 입력 요청")
 public record TradeManualCreateRequest(
-        @Schema(description = "룰셋 ID", example = "1")
-        Long ruleSetId,
-
         @Schema(description = "코인 종류", example = "BTC")
         @NotBlank(message = "코인 종류는 필수입니다.")
         @Size(max = 50, message = "코인 종류는 50자 이하여야 합니다.")

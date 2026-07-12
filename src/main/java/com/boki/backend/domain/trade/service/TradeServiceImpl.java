@@ -1,5 +1,7 @@
 package com.boki.backend.domain.trade.service;
 
+import com.boki.backend.domain.ai.entity.Grade;
+import com.boki.backend.domain.ai.repository.AiReportRepository;
 import com.boki.backend.domain.review.entity.TradeReview;
 import com.boki.backend.domain.review.repository.TradeReviewRepository;
 import com.boki.backend.domain.trade.dto.request.TradeManualCreateRequest;
@@ -40,6 +42,7 @@ public class TradeServiceImpl implements TradeService {
 
     private final TradeRepository tradeRepository;
     private final TradeReviewRepository tradeReviewRepository;
+    private final AiReportRepository aiReportRepository;
 
     @Override
     public List<TradeResponse> getTrades(Long memberId, TradeSearchRequest request) {
@@ -54,9 +57,11 @@ public class TradeServiceImpl implements TradeService {
         }
 
         Map<Long, TradeReview> reviewsByTradeId = findReviewsByTradeId(memberId, trades);
+        List<Long> tradeIds = trades.stream().map(Trade::getTradeId).toList();
+        Map<Long, Grade> gradesByTradeId = aiReportRepository.findGradeMapByTradeIds(tradeIds);
 
         return trades.stream()
-                .map(trade -> toResponseWithReview(trade, reviewsByTradeId.get(trade.getTradeId())))
+                .map(trade -> toResponseWithReview(trade, reviewsByTradeId.get(trade.getTradeId()), gradesByTradeId.get(trade.getTradeId())))
                 .filter(response -> matchesReviewStatus(response, request.reviewStatus()))
                 .toList();
     }
@@ -89,7 +94,8 @@ public class TradeServiceImpl implements TradeService {
         Trade trade = getOwnedTrade(tradeId, memberId);
         TradeReview review = tradeReviewRepository.findByTradeIdAndMemberId(tradeId, memberId)
                 .orElse(null);
-        return toResponseWithReview(trade, review);
+        Map<Long, Grade> gradesByTradeId = aiReportRepository.findGradeMapByTradeIds(List.of(tradeId));
+        return toResponseWithReview(trade, review, gradesByTradeId.get(tradeId));
     }
 
     @Override
@@ -97,7 +103,6 @@ public class TradeServiceImpl implements TradeService {
     public TradeResponse createManualTrade(Long memberId, TradeManualCreateRequest request) {
         BigDecimal quantity = calculateQuantity(request.totalAmount(), request.price());
         Trade trade = Trade.builder()
-                .ruleSetId(request.ruleSetId())
                 .memberId(memberId)
                 .tradeType(request.tradeType())
                 .inputType(TradeInputType.MANUAL)
@@ -120,7 +125,6 @@ public class TradeServiceImpl implements TradeService {
         BigDecimal quantity = calculateQuantity(totalAmount, price);
 
         trade.update(
-                request.ruleSetId(),
                 request.tradeType(),
                 normalizeNullableText(request.coinType()),
                 price,
@@ -131,7 +135,8 @@ public class TradeServiceImpl implements TradeService {
 
         TradeReview review = tradeReviewRepository.findByTradeIdAndMemberId(tradeId, memberId)
                 .orElse(null);
-        return toResponseWithReview(trade, review);
+        Map<Long, Grade> gradesByTradeId = aiReportRepository.findGradeMapByTradeIds(List.of(tradeId));
+        return toResponseWithReview(trade, review, gradesByTradeId.get(tradeId));
     }
 
     @Override
@@ -171,11 +176,11 @@ public class TradeServiceImpl implements TradeService {
                 .collect(Collectors.toMap(TradeReview::getTradeId, Function.identity()));
     }
 
-    private TradeResponse toResponseWithReview(Trade trade, TradeReview review) {
+    private TradeResponse toResponseWithReview(Trade trade, TradeReview review, Grade grade) {
         if (review == null) {
-            return TradeResponse.from(trade, ReviewStatus.NOT_COMPLETED, null);
+            return TradeResponse.from(trade, ReviewStatus.NOT_COMPLETED, null, null);
         }
-        return TradeResponse.from(trade, ReviewStatus.COMPLETED, review.getReviewId());
+        return TradeResponse.from(trade, ReviewStatus.COMPLETED, review.getReviewId(), grade);
     }
 
     private boolean matchesReviewStatus(TradeResponse response, ReviewStatus reviewStatus) {
