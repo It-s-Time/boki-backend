@@ -2,6 +2,7 @@ package com.boki.backend.domain.trade.dto.request;
 
 import com.boki.backend.domain.trade.entity.TradeType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -27,7 +28,7 @@ public record TradeManualCreateRequest(
 
         @Schema(description = "거래 총금액", example = "5000000")
         @NotNull(message = "거래 총금액은 필수입니다.")
-        @Positive(message = "거래 총금액은 0보다 커야 합니다.")
+        @DecimalMin(value = "5000", message = "최소 주문 금액은 5,000원 이상이어야 합니다.")
         BigDecimal totalAmount,
 
         @Schema(description = "거래 일시", example = "2026-05-08T10:30:00")
