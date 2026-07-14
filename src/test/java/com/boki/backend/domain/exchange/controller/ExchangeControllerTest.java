@@ -90,6 +90,97 @@ class ExchangeControllerTest {
     }
 
     @Test
+    void saveVerifiedCredentialCreatesEncryptedCredentialAfterPermissionValidation() throws Exception {
+        mockMvc.perform(post("/api/exchange/api-key/verified")
+                        .header("Authorization", bearer(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "accessKey": "verified-access-key",
+                                  "secretKey": "verified-secret-key"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess", is(true)))
+                .andExpect(jsonPath("$.result.memberId", is(1)))
+                .andExpect(jsonPath("$.result.connected", is(true)));
+
+        ApiKey credential = apiKeyRepository.findByMemberId(1L).orElseThrow();
+        org.hamcrest.MatcherAssert.assertThat(credential.getAccessKey(), is("verified-access-key"));
+        org.hamcrest.MatcherAssert.assertThat(
+                secretKeyEncryptor.decrypt(credential.getSecretKey()),
+                is("verified-secret-key")
+        );
+        verify(upbitClient).validateCredentialPermissions("verified-access-key", "verified-secret-key");
+    }
+
+    @Test
+    void saveVerifiedCredentialKeepsExistingCredentialWhenRequiredPermissionIsMissing() throws Exception {
+        apiKeyRepository.save(ApiKey.builder()
+                .memberId(1L)
+                .accessKey("old-access-key")
+                .secretKey(secretKeyEncryptor.encrypt("old-secret-key"))
+                .build());
+        doThrow(new GeneralException(ExchangeErrorCode.REQUIRED_PERMISSION_MISSING))
+                .when(upbitClient)
+                .validateCredentialPermissions(anyString(), anyString());
+
+        mockMvc.perform(post("/api/exchange/api-key/verified")
+                        .header("Authorization", bearer(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "accessKey": "new-access-key",
+                                  "secretKey": "new-secret-key"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("EXCHANGE400_1")));
+
+        ApiKey credential = apiKeyRepository.findByMemberId(1L).orElseThrow();
+        org.hamcrest.MatcherAssert.assertThat(credential.getAccessKey(), is("old-access-key"));
+        org.hamcrest.MatcherAssert.assertThat(
+                secretKeyEncryptor.decrypt(credential.getSecretKey()),
+                is("old-secret-key")
+        );
+    }
+
+    @Test
+    void saveVerifiedCredentialRejectsUnnecessaryPermission() throws Exception {
+        doThrow(new GeneralException(ExchangeErrorCode.UNNECESSARY_PERMISSION_INCLUDED))
+                .when(upbitClient)
+                .validateCredentialPermissions(anyString(), anyString());
+
+        mockMvc.perform(post("/api/exchange/api-key/verified")
+                        .header("Authorization", bearer(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "accessKey": "over-permitted-access-key",
+                                  "secretKey": "over-permitted-secret-key"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("EXCHANGE400_2")));
+
+        org.hamcrest.MatcherAssert.assertThat(apiKeyRepository.findByMemberId(1L).isEmpty(), is(true));
+    }
+
+    @Test
+    void saveVerifiedCredentialRequiresAccessToken() throws Exception {
+        mockMvc.perform(post("/api/exchange/api-key/verified")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "accessKey": "access-key",
+                                  "secretKey": "secret-key"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code", is("COMMON401")));
+    }
+
+    @Test
     void saveCredentialUpdatesExistingCredential() throws Exception {
         apiKeyRepository.save(ApiKey.builder()
                 .memberId(1L)

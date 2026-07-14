@@ -31,6 +31,17 @@ public class ExchangeApiKeyServiceImpl implements ExchangeApiKeyService {
     @Transactional
     public ApiKeySaveResponse saveCredential(Long memberId, ApiKeySaveRequest request) {
         upbitClient.validateCredentials(request.accessKey(), request.secretKey());
+        return persistCredential(memberId, request);
+    }
+
+    @Override
+    @Transactional
+    public ApiKeySaveResponse saveVerifiedCredential(Long memberId, ApiKeySaveRequest request) {
+        upbitClient.validateCredentialPermissions(request.accessKey(), request.secretKey());
+        return persistCredential(memberId, request);
+    }
+
+    private ApiKeySaveResponse persistCredential(Long memberId, ApiKeySaveRequest request) {
         String encryptedSecretKey = secretKeyEncryptor.encrypt(request.secretKey());
 
         ApiKey apiKey = apiKeyRepository.findByMemberId(memberId)

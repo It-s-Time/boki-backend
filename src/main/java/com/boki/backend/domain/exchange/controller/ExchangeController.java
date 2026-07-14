@@ -38,6 +38,23 @@ public class ExchangeController {
                 .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, exchangeApiKeyService.saveCredential(memberId, request)));
     }
 
+    @Operation(
+            summary = "검증된 거래소 API Key 등록/갱신",
+            description = "자산조회와 주문조회만 허용된 API Key를 검증한 뒤 등록하거나 갱신합니다."
+    )
+    @PostMapping("/api-key/verified")
+    public ResponseEntity<ApiResponse<ApiKeySaveResponse>> saveVerifiedApiKey(
+            @AuthenticationPrincipal Long memberId,
+            @Valid @RequestBody ApiKeySaveRequest request
+    ) {
+        return ResponseEntity
+                .status(GeneralSuccessCode.OK.getStatus())
+                .body(ApiResponse.onSuccess(
+                        GeneralSuccessCode.OK,
+                        exchangeApiKeyService.saveVerifiedCredential(memberId, request)
+                ));
+    }
+
     @Operation(summary = "거래소 거래 수동 동기화", description = "현재 사용자 API Key로 거래소 종료 주문을 조회해 거래 내역을 저장합니다.")
     @PostMapping("/sync/trades")
     public ResponseEntity<ApiResponse<ExchangeTradeSyncResponse>> syncTrades(
