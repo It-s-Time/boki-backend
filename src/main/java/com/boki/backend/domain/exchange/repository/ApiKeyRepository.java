@@ -14,6 +14,8 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, Long> {
 
     Optional<ApiKey> findByMemberId(Long memberId);
 
+    boolean existsByMemberId(Long memberId);
+
     List<ApiKey> findAllByMemberIdIn(List<Long> memberIds);
 
     @Query("""

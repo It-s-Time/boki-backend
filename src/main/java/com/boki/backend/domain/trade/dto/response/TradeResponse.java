@@ -1,5 +1,6 @@
 package com.boki.backend.domain.trade.dto.response;
 
+import com.boki.backend.domain.ai.entity.Grade;
 import com.boki.backend.domain.trade.dto.request.ReviewStatus;
 import com.boki.backend.domain.trade.entity.Trade;
 import com.boki.backend.domain.trade.entity.TradeInputType;
@@ -23,14 +24,15 @@ public record TradeResponse(
         String externalTradeId,
         LocalDateTime createdAt,
         ReviewStatus reviewStatus,
-        Long reviewId
+        Long reviewId,
+        Grade grade
 ) {
 
     public static TradeResponse from(Trade trade) {
-        return from(trade, ReviewStatus.NOT_COMPLETED, null);
+        return from(trade, ReviewStatus.NOT_COMPLETED, null, null);
     }
 
-    public static TradeResponse from(Trade trade, ReviewStatus reviewStatus, Long reviewId) {
+    public static TradeResponse from(Trade trade, ReviewStatus reviewStatus, Long reviewId, Grade grade) {
         return new TradeResponse(
                 trade.getTradeId(),
                 trade.getRuleSetId(),
@@ -45,7 +47,8 @@ public record TradeResponse(
                 trade.getExternalTradeId(),
                 trade.getCreatedAt(),
                 reviewStatus,
-                reviewId
+                reviewId,
+                grade
         );
     }
 }

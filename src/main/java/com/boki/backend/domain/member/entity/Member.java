@@ -41,10 +41,25 @@ public class Member extends BaseEntity {
     @Column(name = "provider_id", nullable = false, length = 100)
     private String providerId;
 
+    @Column(name = "nickname", length = 50)
+    private String nickname;
+
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
     @Builder
     private Member(String email, SocialProvider provider, String providerId) {
         this.email = email;
         this.provider = provider;
         this.providerId = providerId;
+    }
+
+    public void update(String nickname, String profileImageUrl) {
+        if (nickname != null) {
+            this.nickname = nickname;
+        }
+        if (profileImageUrl != null) {
+            this.profileImageUrl = profileImageUrl;
+        }
     }
 }

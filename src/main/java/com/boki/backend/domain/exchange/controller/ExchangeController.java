@@ -2,6 +2,7 @@ package com.boki.backend.domain.exchange.controller;
 
 import com.boki.backend.domain.exchange.dto.request.ApiKeySaveRequest;
 import com.boki.backend.domain.exchange.dto.response.ApiKeySaveResponse;
+import com.boki.backend.domain.exchange.dto.response.ApiKeyStatusResponse;
 import com.boki.backend.domain.exchange.dto.response.ExchangeTradeSyncResponse;
 import com.boki.backend.domain.exchange.service.ExchangeApiKeyService;
 import com.boki.backend.domain.exchange.service.ExchangeTradeSyncService;
@@ -13,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +28,16 @@ public class ExchangeController {
 
     private final ExchangeApiKeyService exchangeApiKeyService;
     private final ExchangeTradeSyncService exchangeTradeSyncService;
+
+    @Operation(summary = "거래소 API 키 등록 여부 조회", description = "현재 사용자의 거래소 API 키 등록 여부를 조회합니다.")
+    @GetMapping("/api-key")
+    public ResponseEntity<ApiResponse<ApiKeyStatusResponse>> getApiKeyStatus(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        return ResponseEntity
+                .status(GeneralSuccessCode.OK.getStatus())
+                .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, exchangeApiKeyService.getApiKeyStatus(memberId)));
+    }
 
     @Operation(summary = "거래소 API Key 등록/갱신", description = "현재 사용자 기준 거래소 API Key를 등록하거나 갱신합니다.")
     @PostMapping("/api-key")
