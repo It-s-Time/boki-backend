@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -207,6 +208,45 @@ class ExchangeControllerTest {
                 secretKeyEncryptor.decrypt(credentials.get(0).getSecretKey()),
                 is("new-secret-key")
         );
+    }
+
+    @Test
+    void deleteCredentialDeletesCurrentUserCredential() throws Exception {
+        apiKeyRepository.save(ApiKey.builder()
+                .memberId(1L)
+                .accessKey("access-key")
+                .secretKey(secretKeyEncryptor.encrypt("secret-key"))
+                .build());
+        apiKeyRepository.save(ApiKey.builder()
+                .memberId(2L)
+                .accessKey("other-access-key")
+                .secretKey(secretKeyEncryptor.encrypt("other-secret-key"))
+                .build());
+
+        mockMvc.perform(delete("/api/exchange/api-key")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess", is(true)))
+                .andExpect(jsonPath("$.code", is("COMMON200_1")))
+                .andExpect(jsonPath("$.message", is("삭제되었습니다.")));
+
+        org.hamcrest.MatcherAssert.assertThat(apiKeyRepository.findByMemberId(1L).isEmpty(), is(true));
+        org.hamcrest.MatcherAssert.assertThat(apiKeyRepository.findByMemberId(2L).isPresent(), is(true));
+    }
+
+    @Test
+    void deleteCredentialFailsWithoutCredential() throws Exception {
+        mockMvc.perform(delete("/api/exchange/api-key")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is("EXCHANGE404")));
+    }
+
+    @Test
+    void deleteCredentialRequiresAccessToken() throws Exception {
+        mockMvc.perform(delete("/api/exchange/api-key"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code", is("COMMON401")));
     }
 
     @Test

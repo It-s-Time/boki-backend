@@ -6,8 +6,10 @@ import com.boki.backend.domain.exchange.dto.request.ApiKeySaveRequest;
 import com.boki.backend.domain.exchange.dto.response.ApiKeySaveResponse;
 import com.boki.backend.domain.exchange.dto.response.ApiKeyStatusResponse;
 import com.boki.backend.domain.exchange.entity.ApiKey;
+import com.boki.backend.domain.exchange.exception.ExchangeErrorCode;
 import com.boki.backend.domain.exchange.repository.ApiKeyRepository;
 import com.boki.backend.domain.exchange.util.SecretKeyEncryptor;
+import com.boki.backend.global.apiPayload.exception.GeneralException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -64,6 +66,14 @@ public class ExchangeApiKeyServiceImpl implements ExchangeApiKeyService {
     @Override
     public ApiKeyStatusResponse getApiKeyStatus(Long memberId) {
         return new ApiKeyStatusResponse(apiKeyRepository.existsByMemberId(memberId));
+    }
+
+    @Override
+    @Transactional
+    public void deleteCredential(Long memberId) {
+        ApiKey apiKey = apiKeyRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new GeneralException(ExchangeErrorCode.CREDENTIAL_NOT_FOUND));
+        apiKeyRepository.delete(apiKey);
     }
 
     private void startInitialTradeSyncAfterCommit(Long memberApiKeyId) {

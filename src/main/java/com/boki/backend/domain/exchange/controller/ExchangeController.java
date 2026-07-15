@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -65,6 +66,17 @@ public class ExchangeController {
                         GeneralSuccessCode.OK,
                         exchangeApiKeyService.saveVerifiedCredential(memberId, request)
                 ));
+    }
+
+    @Operation(summary = "거래소 API Key 삭제", description = "현재 사용자의 거래소 API Key를 삭제합니다.")
+    @DeleteMapping("/api-key")
+    public ResponseEntity<ApiResponse<Void>> deleteApiKey(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        exchangeApiKeyService.deleteCredential(memberId);
+        return ResponseEntity
+                .status(GeneralSuccessCode.DELETED.getStatus())
+                .body(ApiResponse.onSuccess(GeneralSuccessCode.DELETED, null));
     }
 
     @Operation(summary = "거래소 거래 수동 동기화", description = "현재 사용자 API Key로 거래소 종료 주문을 조회해 거래 내역을 저장합니다.")
