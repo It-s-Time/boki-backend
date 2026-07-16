@@ -8,5 +8,9 @@ public interface ExchangeApiKeyService {
 
     ApiKeySaveResponse saveCredential(Long memberId, ApiKeySaveRequest request);
 
+    ApiKeySaveResponse saveVerifiedCredential(Long memberId, ApiKeySaveRequest request);
+
     ApiKeyStatusResponse getApiKeyStatus(Long memberId);
+
+    void deleteCredential(Long memberId);
 }
