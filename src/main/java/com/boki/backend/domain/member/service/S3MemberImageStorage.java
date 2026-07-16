@@ -35,7 +35,7 @@ public class S3MemberImageStorage implements MemberImageStorage {
     public String upload(MultipartFile file, Long memberId) {
         String objectKey = "profiles/%d/%s%s".formatted(memberId, UUID.randomUUID(), extensionFor(file));
 
-        try {
+        try (var inputStream = file.getInputStream()) {
             s3Client.putObject(
                     PutObjectRequest.builder()
                             .bucket(properties.bucket())
@@ -43,7 +43,7 @@ public class S3MemberImageStorage implements MemberImageStorage {
                             .contentType(file.getContentType())
                             .contentLength(file.getSize())
                             .build(),
-                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+                    RequestBody.fromInputStream(inputStream, file.getSize())
             );
         } catch (IOException | SdkException e) {
             log.warn("프로필 이미지 S3 업로드 실패. bucket={}, key={}", properties.bucket(), objectKey, e);
