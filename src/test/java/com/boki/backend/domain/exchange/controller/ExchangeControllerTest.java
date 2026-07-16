@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -90,6 +91,97 @@ class ExchangeControllerTest {
     }
 
     @Test
+    void saveVerifiedCredentialCreatesEncryptedCredentialAfterPermissionValidation() throws Exception {
+        mockMvc.perform(post("/api/exchange/api-key/verified")
+                        .header("Authorization", bearer(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "accessKey": "verified-access-key",
+                                  "secretKey": "verified-secret-key"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess", is(true)))
+                .andExpect(jsonPath("$.result.memberId", is(1)))
+                .andExpect(jsonPath("$.result.connected", is(true)));
+
+        ApiKey credential = apiKeyRepository.findByMemberId(1L).orElseThrow();
+        org.hamcrest.MatcherAssert.assertThat(credential.getAccessKey(), is("verified-access-key"));
+        org.hamcrest.MatcherAssert.assertThat(
+                secretKeyEncryptor.decrypt(credential.getSecretKey()),
+                is("verified-secret-key")
+        );
+        verify(upbitClient).validateCredentialPermissions("verified-access-key", "verified-secret-key");
+    }
+
+    @Test
+    void saveVerifiedCredentialKeepsExistingCredentialWhenRequiredPermissionIsMissing() throws Exception {
+        apiKeyRepository.save(ApiKey.builder()
+                .memberId(1L)
+                .accessKey("old-access-key")
+                .secretKey(secretKeyEncryptor.encrypt("old-secret-key"))
+                .build());
+        doThrow(new GeneralException(ExchangeErrorCode.REQUIRED_PERMISSION_MISSING))
+                .when(upbitClient)
+                .validateCredentialPermissions(anyString(), anyString());
+
+        mockMvc.perform(post("/api/exchange/api-key/verified")
+                        .header("Authorization", bearer(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "accessKey": "new-access-key",
+                                  "secretKey": "new-secret-key"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("EXCHANGE400_1")));
+
+        ApiKey credential = apiKeyRepository.findByMemberId(1L).orElseThrow();
+        org.hamcrest.MatcherAssert.assertThat(credential.getAccessKey(), is("old-access-key"));
+        org.hamcrest.MatcherAssert.assertThat(
+                secretKeyEncryptor.decrypt(credential.getSecretKey()),
+                is("old-secret-key")
+        );
+    }
+
+    @Test
+    void saveVerifiedCredentialRejectsUnnecessaryPermission() throws Exception {
+        doThrow(new GeneralException(ExchangeErrorCode.UNNECESSARY_PERMISSION_INCLUDED))
+                .when(upbitClient)
+                .validateCredentialPermissions(anyString(), anyString());
+
+        mockMvc.perform(post("/api/exchange/api-key/verified")
+                        .header("Authorization", bearer(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "accessKey": "over-permitted-access-key",
+                                  "secretKey": "over-permitted-secret-key"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("EXCHANGE400_2")));
+
+        org.hamcrest.MatcherAssert.assertThat(apiKeyRepository.findByMemberId(1L).isEmpty(), is(true));
+    }
+
+    @Test
+    void saveVerifiedCredentialRequiresAccessToken() throws Exception {
+        mockMvc.perform(post("/api/exchange/api-key/verified")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "accessKey": "access-key",
+                                  "secretKey": "secret-key"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code", is("COMMON401")));
+    }
+
+    @Test
     void saveCredentialUpdatesExistingCredential() throws Exception {
         apiKeyRepository.save(ApiKey.builder()
                 .memberId(1L)
@@ -116,6 +208,45 @@ class ExchangeControllerTest {
                 secretKeyEncryptor.decrypt(credentials.get(0).getSecretKey()),
                 is("new-secret-key")
         );
+    }
+
+    @Test
+    void deleteCredentialDeletesCurrentUserCredential() throws Exception {
+        apiKeyRepository.save(ApiKey.builder()
+                .memberId(1L)
+                .accessKey("access-key")
+                .secretKey(secretKeyEncryptor.encrypt("secret-key"))
+                .build());
+        apiKeyRepository.save(ApiKey.builder()
+                .memberId(2L)
+                .accessKey("other-access-key")
+                .secretKey(secretKeyEncryptor.encrypt("other-secret-key"))
+                .build());
+
+        mockMvc.perform(delete("/api/exchange/api-key")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess", is(true)))
+                .andExpect(jsonPath("$.code", is("COMMON200_1")))
+                .andExpect(jsonPath("$.message", is("삭제되었습니다.")));
+
+        org.hamcrest.MatcherAssert.assertThat(apiKeyRepository.findByMemberId(1L).isEmpty(), is(true));
+        org.hamcrest.MatcherAssert.assertThat(apiKeyRepository.findByMemberId(2L).isPresent(), is(true));
+    }
+
+    @Test
+    void deleteCredentialFailsWithoutCredential() throws Exception {
+        mockMvc.perform(delete("/api/exchange/api-key")
+                        .header("Authorization", bearer(1L)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is("EXCHANGE404")));
+    }
+
+    @Test
+    void deleteCredentialRequiresAccessToken() throws Exception {
+        mockMvc.perform(delete("/api/exchange/api-key"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code", is("COMMON401")));
     }
 
     @Test
