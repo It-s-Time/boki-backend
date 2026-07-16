@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class MemberServiceImpl implements MemberService {
 
     private final MemberRepository memberRepository;
+    private final MemberImageStorage memberImageStorage;
 
     @Override
     public MemberResponse getMember(Long memberId) {
@@ -30,7 +31,13 @@ public class MemberServiceImpl implements MemberService {
     public MemberResponse updateMember(Long memberId, MemberUpdateRequest request, MultipartFile profileImage) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new GeneralException(MemberErrorCode.MEMBER_NOT_FOUND));
-        member.update(request.nickname(), null);
+
+        String imageUrl = null;
+        if (profileImage != null && !profileImage.isEmpty()) {
+            imageUrl = memberImageStorage.upload(profileImage, memberId);
+        }
+        member.update(request.nickname(), imageUrl);
+
         return MemberResponse.from(member);
     }
 }
