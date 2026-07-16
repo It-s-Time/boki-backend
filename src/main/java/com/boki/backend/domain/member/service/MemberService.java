@@ -9,4 +9,6 @@ public interface MemberService {
     MemberResponse getMember(Long memberId);
 
     MemberResponse updateMember(Long memberId, MemberUpdateRequest request, MultipartFile profileImage);
+
+    void withdrawMember(Long memberId);
 }
