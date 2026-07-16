@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -48,5 +49,14 @@ public class MemberController {
         return ResponseEntity
                 .status(GeneralSuccessCode.OK.getStatus())
                 .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, memberService.updateMember(userProvider.getCurrentUserId(), request, profileImage)));
+    }
+
+    @Operation(summary = "회원 탈퇴", description = "현재 로그인한 사용자의 회원 정보를 삭제하고 Redis에 저장된 refresh token을 삭제합니다.")
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<Void>> withdrawMyAccount() {
+        memberService.withdrawMember(userProvider.getCurrentUserId());
+        return ResponseEntity
+                .status(GeneralSuccessCode.DELETED.getStatus())
+                .body(ApiResponse.onSuccess(GeneralSuccessCode.DELETED, null));
     }
 }
