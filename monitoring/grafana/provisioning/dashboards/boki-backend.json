@@ -416,11 +416,11 @@
       },
       "targets": [{
         "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-        "expr": "rate(jvm_gc_pause_seconds_sum[1m])",
+        "expr": "increase(jvm_gc_pause_seconds_sum[1m])",
         "legendFormat": "GC {{action}} ({{cause}})",
         "refId": "A"
       }],
-      "title": "GC 일시정지 시간",
+      "title": "GC 일시정지 시간 (최근 1분 누적)",
       "type": "timeseries"
     },
 
