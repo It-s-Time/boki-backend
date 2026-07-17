@@ -58,14 +58,17 @@ jobs:
           chmod 600 ~/.ssh/boki_key
 
       - name: Copy monitoring files to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key_path: /home/runner/.ssh/boki_key
-          port: ${{ secrets.EC2_SSH_PORT || 22 }}
-          source: "monitoring/,docker-compose.prod.yml"
-          target: ${{ secrets.EC2_APP_DIR }}
+        run: |
+          scp -i ~/.ssh/boki_key \
+              -P ${{ secrets.EC2_SSH_PORT || 22 }} \
+              -o StrictHostKeyChecking=no \
+              -r monitoring/ \
+              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:${{ secrets.EC2_APP_DIR }}/
+          scp -i ~/.ssh/boki_key \
+              -P ${{ secrets.EC2_SSH_PORT || 22 }} \
+              -o StrictHostKeyChecking=no \
+              docker-compose.prod.yml \
+              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:${{ secrets.EC2_APP_DIR }}/
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.0
