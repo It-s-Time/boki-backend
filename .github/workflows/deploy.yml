@@ -1,4 +1,4 @@
-name: Deploy
+﻿name: Deploy
 
 on:
   push:
@@ -82,6 +82,10 @@ jobs:
             set -e
             cd ${{ secrets.EC2_APP_DIR }}
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            docker compose -f docker-compose.prod.yml rm -sf grafana || true
+            docker volume rm boki-backend_boki-grafana-data || true
+
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             docker compose -f docker-compose.prod.yml ps
