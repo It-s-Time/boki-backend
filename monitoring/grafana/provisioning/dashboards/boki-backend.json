@@ -54,7 +54,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -78,7 +78,7 @@
         "textMode": "auto"
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "sum(rate(http_server_requests_seconds_count[1m]))",
         "legendFormat": "요청/초",
         "refId": "A"
@@ -88,7 +88,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -112,7 +112,7 @@
         "textMode": "auto"
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "sum(rate(http_server_requests_seconds_sum[1m])) / sum(rate(http_server_requests_seconds_count[1m])) * 1000",
         "legendFormat": "평균 응답시간",
         "refId": "A"
@@ -122,7 +122,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -146,7 +146,7 @@
         "textMode": "auto"
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1m])) / sum(rate(http_server_requests_seconds_count[1m])) * 100",
         "legendFormat": "5xx 에러율",
         "refId": "A"
@@ -156,7 +156,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -181,7 +181,7 @@
         "textMode": "auto"
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "process_cpu_usage * 100",
         "legendFormat": "CPU 사용률",
         "refId": "A"
@@ -191,7 +191,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -216,7 +216,7 @@
         "textMode": "auto"
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "sum(jvm_memory_used_bytes{area=\"heap\"}) / sum(jvm_memory_max_bytes{area=\"heap\"}) * 100",
         "legendFormat": "힙 사용률",
         "refId": "A"
@@ -226,7 +226,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -250,7 +250,7 @@
         "textMode": "auto"
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "hikaricp_connections_active",
         "legendFormat": "활성 DB 연결",
         "refId": "A"
@@ -260,7 +260,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -283,7 +283,7 @@
         "tooltip": { "mode": "multi", "sort": "none" }
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "sum by (status) (rate(http_server_requests_seconds_count[1m]))",
         "legendFormat": "HTTP {{status}}",
         "refId": "A"
@@ -293,7 +293,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -317,19 +317,19 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000",
           "legendFormat": "P50 응답시간",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000",
           "legendFormat": "P95 응답시간",
           "refId": "B"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000",
           "legendFormat": "P99 응답시간",
           "refId": "C"
@@ -348,7 +348,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -371,19 +371,19 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "sum(jvm_memory_used_bytes{area=\"heap\"})",
           "legendFormat": "힙 사용",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "sum(jvm_memory_max_bytes{area=\"heap\"})",
           "legendFormat": "힙 최대",
           "refId": "B"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "sum(jvm_memory_used_bytes{area=\"nonheap\"})",
           "legendFormat": "Non-Heap 사용",
           "refId": "C"
@@ -394,7 +394,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -415,7 +415,7 @@
         "tooltip": { "mode": "multi", "sort": "none" }
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "increase(jvm_gc_pause_seconds_sum[1m])",
         "legendFormat": "GC {{action}} ({{cause}})",
         "refId": "A"
@@ -425,7 +425,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -448,19 +448,19 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "jvm_threads_live_threads",
           "legendFormat": "활성 스레드",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "jvm_threads_daemon_threads",
           "legendFormat": "데몬 스레드",
           "refId": "B"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "jvm_threads_peak_threads",
           "legendFormat": "최대 스레드",
           "refId": "C"
@@ -479,7 +479,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -503,7 +503,7 @@
         "tooltip": { "mode": "multi", "sort": "none" }
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[2m]))",
         "legendFormat": "CPU 사용률",
         "refId": "A"
@@ -513,7 +513,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -536,19 +536,19 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "node_memory_MemTotal_bytes",
           "legendFormat": "전체 메모리",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
           "legendFormat": "사용 중 메모리",
           "refId": "B"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "node_memory_MemAvailable_bytes",
           "legendFormat": "여유 메모리",
           "refId": "C"
@@ -559,7 +559,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -582,13 +582,13 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "rate(node_network_receive_bytes_total{device!=\"lo\"}[2m])",
           "legendFormat": "수신 ({{device}})",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "rate(node_network_transmit_bytes_total{device!=\"lo\"}[2m])",
           "legendFormat": "송신 ({{device}})",
           "refId": "B"
@@ -599,7 +599,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -625,7 +625,7 @@
         "showThresholdMarkers": true
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "(node_filesystem_size_bytes{mountpoint=\"/\"} - node_filesystem_avail_bytes{mountpoint=\"/\"}) / node_filesystem_size_bytes{mountpoint=\"/\"} * 100",
         "legendFormat": "디스크 사용률",
         "refId": "A"
@@ -643,7 +643,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -665,7 +665,7 @@
         "tooltip": { "mode": "multi", "sort": "desc" }
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "sum by (uri) (rate(http_server_requests_seconds_count{uri=~\"/api/trades.*|/api/reviews.*|/api/members.*|/api/rulesets.*\"}[2m]))",
         "legendFormat": "{{uri}}",
         "refId": "A"
@@ -675,7 +675,7 @@
     },
 
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -696,7 +696,7 @@
         "tooltip": { "mode": "multi", "sort": "desc" }
       },
       "targets": [{
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "expr": "sum by (uri, status) (rate(http_server_requests_seconds_count{status=~\"4..|5..\"}[5m]))",
         "legendFormat": "{{status}} {{uri}}",
         "refId": "A"
