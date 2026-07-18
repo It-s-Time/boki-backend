@@ -30,9 +30,12 @@ class MemberServiceImplTest {
     @Mock
     private RefreshTokenService refreshTokenService;
 
+    @Mock
+    private MemberImageStorage memberImageStorage;
+
     @BeforeEach
     void setUp() {
-        memberService = new MemberServiceImpl(memberRepository, refreshTokenService);
+        memberService = new MemberServiceImpl(memberRepository, refreshTokenService, memberImageStorage);
     }
 
     @Test

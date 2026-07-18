@@ -91,7 +91,7 @@ jobs:
             docker compose -f docker-compose.prod.yml ps
 
             for i in $(seq 1 12); do
-              if curl --connect-timeout 2 --max-time 5 -fsS http://localhost:8080/actuator/health; then
+              if curl --connect-timeout 2 --max-time 5 -fsS http://localhost:8081/actuator/health; then
                 exit 0
               fi
               sleep 5

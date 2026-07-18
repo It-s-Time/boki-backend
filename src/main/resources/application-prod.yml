@@ -19,3 +19,7 @@ spring:
 logging:
   level:
     root: info
+
+management:
+  server:
+    port: ${MANAGEMENT_SERVER_PORT:8081}
